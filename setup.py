@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='is_wire',
-    version='1.0.0',
+    version='1.0.1',
     description='',
     url='http://github.com/labviros/is-wire-py',
     author='labviros',

@@ -1,4 +1,5 @@
 from .utils import consumer_id
+import re
 
 class Subscription:
     def __init__(self, channel, queue=None):
@@ -9,6 +10,9 @@ class Subscription:
         self.__channel._Channel__queue_bind(queue=self.__queue, routing_key=self.__queue)
         self.__channel._Channel__basic_consume(queue=self.__queue, consumer_tag=self.__ctag)
 
+    def __make_re(self, topic):
+        return re.compile(re.sub('[*]', '.+', re.sub('[.]', '\.', topic)))
+
     def name(self):
         return self.__queue
 
@@ -18,4 +22,4 @@ class Subscription:
     def subscribe(self, topic, fn):
         self.__channel._Channel__queue_bind(
             queue=self.__queue, routing_key=topic)
-        self.__channel._Channel__subscriptions[self.__ctag][topic] = fn
+        self.__channel._Channel__subscriptions[self.__ctag][self.__make_re(topic)] = fn

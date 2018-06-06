@@ -1,6 +1,7 @@
 import pika
 import uuid
 import json
+import re
 from collections import defaultdict
 from threading import Timer
 
@@ -10,8 +11,8 @@ from .utils import current_time, consumer_id
 from .logger import Logger
 
 class Channel(object):
-    def __init__(self, hostname='localhost', port=5672):
-        params = pika.ConnectionParameters(hostname, port)
+    def __init__(self, uri='amqp://guest:guest@localhost:5672'):
+        params = pika.URLParameters(uri)
         self.__connection = pika.BlockingConnection(params)
         self.__amqp_channel = self.__connection.channel()
         self.__exchange = 'is'
@@ -32,17 +33,24 @@ class Channel(object):
         msg = Message()
         msg.set_body(body)
         msg.set_properties(props)
-        if rkey in self.__subscriptions[ctag]:
-            self.__subscriptions[ctag][rkey](msg, {})
-        elif rkey in self.__queues:
-            if cid in self.__timers[ctag]:
-                self.__timers[ctag][cid].cancel()
-                del self.__timers[ctag][cid]
-            if cid in self.__rpcs[ctag]:
-                self.__rpcs[ctag][cid](msg, {})
-                del self.__rpcs[ctag][cid]
-            else:
-                self.__log.warn('Message to {} with CID {} with no callback assigned or removed due timeout', rkey, ctag)
+
+        was_subscription = False
+        for regex, callback in self.__subscriptions[ctag].items():
+            if regex.match(rkey):
+                msg.set_topic(rkey)
+                callback(msg, {})
+                was_subscription = True
+                break
+        if not was_subscription:
+            if rkey in self.__queues:
+                if cid in self.__timers[ctag]:
+                    self.__timers[ctag][cid].cancel()
+                    del self.__timers[ctag][cid]
+                if cid in self.__rpcs[ctag]:
+                    self.__rpcs[ctag][cid](msg, {})
+                    del self.__rpcs[ctag][cid]
+                else:
+                    self.__log.warn('Message to {} with CID {} with no callback assigned or removed due timeout', rkey, ctag)
 
     def __queue_bind(self, queue, routing_key):
         self.__amqp_channel.queue_bind(exchange=self.__exchange, queue=queue, routing_key=routing_key)

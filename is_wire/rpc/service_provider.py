@@ -9,8 +9,11 @@ class ServiceProvider:
         self.__interceptors = []
        
     def __deadline_exceeded(self, msg):
-        dt = current_time() - msg.created_at()
-        return not dt < int(msg.timeout_ms())
+        if msg.has_timeout_ms():
+            dt = current_time() - msg.created_at()
+            return not dt < int(msg.timeout_ms())
+        else:
+            return False
 
     def add_interceptor(self, interceptor):
         self.__interceptors.append(interceptor)
