@@ -12,6 +12,31 @@ class ZipkinTracer:
     def __init__(self, host_name='localhost', port=9411, service_name='my_service'):
         self.exporter = ZipkinExporter(
             host_name=host_name, port=port, service_name=service_name)
+        self.__tracers = {}
+
+    def start_span(self, span_name):
+        tracer = tracer_module.Tracer(exporter=self.exporter)
+        span = tracer.start_span(span_name)
+        trace_id = span_context = tracer.span_context.trace_id
+        span_id = format_span_json(span)['spanId']
+        self.__tracers[span_id] = tracer
+        return self.__trace_wire(trace_id, span_id)
+
+    def end_span(self, span):
+        span_id = span['x-b3-spanid']
+        if span_id in self.__tracers:
+            tracer = self.__tracers[span_id]
+            tracer.end_span()
+            del self.__tracers[span_id]
+
+    def __trace_wire(self, trace_id, span_id, parents_id='0000000000000000'):
+        return {
+            'x-b3-sampled': '1',
+            'x-b3-traceid': trace_id,
+            'x-b3-flags': '0',
+            'x-b3-spanid': span_id,
+            'x-b3-parentspanid': parents_id
+        }
 
     def interceptor(self, span_name):
         def interceptor_dec(f):
@@ -27,13 +52,7 @@ class ZipkinTracer:
                 span_context = tracer.span_context
                 span = tracer.start_span(span_name)
                 new_span_id = format_span_json(span)['spanId']
-                context.update({
-                    'x-b3-sampled': u'1',
-                    'x-b3-traceid': unicode(span_context.trace_id),
-                    'x-b3-flags': u'0',
-                    'x-b3-spanid': unicode(new_span_id),
-                    'x-b3-parentspanid': u'0000000000000000'
-                })
+                context.update(self.__trace_wire(span_context.trace_id, new_span_id))
                 f(msg, context)
                 tracer.end_span()
             return wrapper
