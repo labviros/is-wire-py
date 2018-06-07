@@ -9,7 +9,7 @@ class Message:
     def __init__(self):
         self.__topic = None
         self.__sid = None
-        self.__body = None
+        self.__body = ''
         self.__reply_to = None
         self.__correlation_id = None
         self.__content_type = None
