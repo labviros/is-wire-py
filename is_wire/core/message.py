@@ -65,9 +65,11 @@ class Message:
             self.__reply_to = subscription.name()
             self.__ctag = subscription.id()
             if self.__correlation_id == None:
-                self.set_correlation_id(str(uuid.uuid1().int >> 64))
+                self.set_correlation_id(self.__new_cid())
         elif isinstance(subscription, str):
             self.__reply_to = subscription
+            if self.__correlation_id == None:
+                self.set_correlation_id(self.__new_cid())
         return self
 
     def has_reply_to(self):
@@ -161,3 +163,6 @@ class Message:
         msg = pb()
         msg.ParseFromString(self.__body)
         return msg
+
+    def __new_cid(self):
+        return '{:X}'.format(uuid.uuid1().int >> 64)

@@ -17,7 +17,7 @@ class ZipkinTracer:
     def start_span(self, span_name):
         tracer = tracer_module.Tracer(exporter=self.exporter)
         span = tracer.start_span(span_name)
-        trace_id = span_context = tracer.span_context.trace_id
+        trace_id = tracer.span_context.trace_id
         span_id = format_span_json(span)['spanId']
         self.__tracers[span_id] = tracer
         return self.__trace_wire(trace_id, span_id)
