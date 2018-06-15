@@ -88,8 +88,8 @@ class Message:
     def correlation_id(self):
         return self.__correlation_id
 
-    def set_correlation_id(self, cid):
-        self.__correlation_id = cid
+    def set_correlation_id(self, cid=None):
+        self.__correlation_id = cid if cid else self.__new_cid()
         return self
 
     def has_correlation_id(self):

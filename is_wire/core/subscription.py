@@ -4,7 +4,7 @@ import re
 class Subscription:
     def __init__(self, channel, queue=None):
         self.__channel = channel
-        self.__ctag = consumer_id() if queue else self.__channel._Channel__ctag
+        self.__ctag = consumer_id()
         self.__queue = queue if queue else self.__ctag
         self.__channel._Channel__queue_declare(queue=self.__queue)
         self.__channel._Channel__queue_bind(queue=self.__queue, routing_key=self.__queue)

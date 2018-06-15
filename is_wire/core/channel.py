@@ -17,9 +17,7 @@ class Channel(object):
         self.__amqp_channel = self.__connection.channel()
         self.__exchange = 'is'
         self.__queues = []
-        self.__ctag = consumer_id()
         self.__ctags = []
-        self.__subscription = Subscription(self)
         self.__subscriptions = defaultdict(dict)
         self.__rpcs = defaultdict(dict)
         self.__timers = defaultdict(dict)
