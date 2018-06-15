@@ -50,7 +50,7 @@ class Channel(object):
                     self.__rpcs[ctag][cid](msg, {})
                     del self.__rpcs[ctag][cid]
                 else:
-                    self.__log.warn('Message to {} with CID {} with no callback assigned or removed due timeout', rkey, ctag)
+                    self.__log.warn('Message to {} with CID {} with no callback assigned or removed due timeout', rkey, cid)
 
     def __queue_bind(self, queue, routing_key):
         self.__amqp_channel.queue_bind(exchange=self.__exchange, queue=queue, routing_key=routing_key)

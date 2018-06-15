@@ -14,11 +14,17 @@ class ZipkinTracer:
             host_name=host_name, port=port, service_name=service_name)
         self.__tracers = {}
 
-    def start_span(self, span_name):
-        tracer = tracer_module.Tracer(exporter=self.exporter)
+    def start_span(self, span_name, context={}):
+        if 'x-b3-traceid' in context and 'x-b3-spanid' in context:
+            trace_id = str(context['x-b3-traceid'])
+            span_id = str(context['x-b3-spanid'])
+            span_context = SpanContext(trace_id=trace_id, span_id=span_id)
+        else:
+            span_context = None
+        tracer = tracer_module.Tracer(exporter=self.exporter, span_context=span_context)
         span = tracer.start_span(span_name)
-        trace_id = tracer.span_context.trace_id
         span_id = format_span_json(span)['spanId']
+        trace_id = tracer.span_context.trace_id
         self.__tracers[span_id] = tracer
         return self.__trace_wire(trace_id, span_id)
 
@@ -41,19 +47,9 @@ class ZipkinTracer:
     def interceptor(self, span_name):
         def interceptor_dec(f):
             def wrapper(msg, context):
-                metadata = msg.metadata()
-                span_context = None
-                if 'x-b3-traceid' in metadata.keys() and 'x-b3-spanid' in metadata.keys():
-                    trace_id = str(metadata['x-b3-traceid'])
-                    span_id = str(metadata['x-b3-spanid'])
-                    span_context = SpanContext(trace_id=trace_id, span_id=span_id)
-                
-                tracer = tracer_module.Tracer(exporter=self.exporter, span_context=span_context)
-                span_context = tracer.span_context
-                span = tracer.start_span(span_name)
-                new_span_id = format_span_json(span)['spanId']
-                context.update(self.__trace_wire(span_context.trace_id, new_span_id))
+                span = self.start_span(span_name, context=msg.metadata())
+                context.update(span)
                 f(msg, context)
-                tracer.end_span()
+                self.end_span(span)
             return wrapper
         return interceptor_dec
