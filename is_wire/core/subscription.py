@@ -23,3 +23,9 @@ class Subscription:
         self.__channel._Channel__queue_bind(
             queue=self.__queue, routing_key=topic)
         self.__channel._Channel__subscriptions[self.__ctag][self.__make_re(topic)] = fn
+
+    def unsubscribe(self, topic):
+        self.__channel._Channel__queue_unbind(queue=self.__queue, routing_key=topic)
+        re_topic = self.__make_re(topic)
+        if re_topic in self.__channel._Channel__subscriptions[self.__ctag]:
+            del self.__channel._Channel__subscriptions[self.__ctag][re_topic]

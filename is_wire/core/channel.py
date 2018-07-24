@@ -52,6 +52,9 @@ class Channel(object):
 
     def __queue_bind(self, queue, routing_key):
         self.__amqp_channel.queue_bind(exchange=self.__exchange, queue=queue, routing_key=routing_key)
+
+    def __queue_unbind(self, queue, routing_key):
+        self.__amqp_channel.queue_unbind(exchange=self.__exchange, queue=queue, routing_key=routing_key)
     
     def __queue_declare(self, queue):
         if not queue in self.__queues:
