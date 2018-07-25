@@ -7,7 +7,8 @@ setup(
     url='http://github.com/labviros/is-wire-py',
     author='labviros',
     license='MIT',
-    packages=[ 'is_wire', 'is_wire.core', 'is_wire.rpc' ],
+    packages=find_packages('src'),
+    package_dir={'': 'src'},
     zip_safe=False,
     install_requires=['pika==0.12.0', 'termcolor', 'is-msgs', 'is-opencensus']
     # change 'is-opencensus' to 'opencensus' when pull request accepted
