@@ -1,31 +1,66 @@
-from .utils import consumer_id
-import re
+from utils import new_uuid, consumer_id
 
-class Subscription:
-    def __init__(self, channel, queue=None):
-        self.__channel = channel
-        self.__ctag = consumer_id()
-        self.__queue = queue if queue else self.__ctag
-        self.__channel._Channel__queue_declare(queue=self.__queue)
-        self.__channel._Channel__queue_bind(queue=self.__queue, routing_key=self.__queue)
-        self.__channel._Channel__basic_consume(queue=self.__queue, consumer_tag=self.__ctag)
 
-    def __make_re(self, topic):
-        return re.compile(re.sub('[*]', '.+', re.sub('[.]', '\.', topic)))
+class Subscription(object):
+    def __init__(self, channel, name=None):
+        self._id = consumer_id()
+        self._name = self._id if name is None else name
+        self._topics = set()
 
-    def name(self):
-        return self.__queue
+        self._channel = channel._channel
+        self._exchange = channel._exchange
 
-    def id(self):
-        return self.__ctag
+        def create_queue(channel, exchange, queue, tag, on_message):
+            channel.queue_declare(
+                queue=queue,
+                passive=False,
+                durable=False,
+                exclusive=False,
+                auto_delete=True,
+            )
 
-    def subscribe(self, topic, fn):
-        self.__channel._Channel__queue_bind(
-            queue=self.__queue, routing_key=topic)
-        self.__channel._Channel__subscriptions[self.__ctag][self.__make_re(topic)] = fn
+            channel.queue_bind(
+                queue=queue,
+                exchange=exchange,
+                routing_key=queue,
+            )
+
+            channel.basic_consume(
+                queue=queue,
+                callback=on_message,
+                consumer_tag=tag,
+                no_local=False,
+                no_ack=True,
+                exclusive=False,
+            )
+
+        create_queue(self._channel, self._exchange, self._name, self._id,
+                     channel._on_message)
+
+    def subscribe(self, topic):
+        self._channel.queue_bind(
+            queue=self._name,
+            exchange=self._exchange,
+            routing_key=topic,
+        )
+        self._topics.add(topic)
 
     def unsubscribe(self, topic):
-        self.__channel._Channel__queue_unbind(queue=self.__queue, routing_key=topic)
-        re_topic = self.__make_re(topic)
-        if re_topic in self.__channel._Channel__subscriptions[self.__ctag]:
-            del self.__channel._Channel__subscriptions[self.__ctag][re_topic]
+        self._channel.queue_unbind(
+            queue=self._name,
+            exchange=self._exchange,
+            routing_key=topic,
+        )
+        self._topics.remove(topic)
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def topics(self):
+        return self._topics

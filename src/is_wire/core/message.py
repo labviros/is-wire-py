@@ -1,10 +1,7 @@
-import uuid
-import json
-from pika import BasicProperties
-
-from .utils import current_time, assert_type, new_uuid
-from .subscription import Subscription
+from subscription import Subscription
 from is_msgs.wire_pb2 import ContentType
+from datetime import datetime
+from utils import now, assert_type, new_uuid
 
 
 class Message(object):
@@ -15,42 +12,46 @@ class Message(object):
         self._subscription_id = None
         self._correlation_id = None
         self._content_type = None
-        self._created_at = current_time()
+        self._created_at = now()
         self._metadata = {}
-        self._on_reply = None
-        self._on_timeout = None
         self._timeout = None
 
         if obj != None:
             self.pack(obj)
 
-    def to_amqp_properties(self):
-        return BasicProperties(
-            content_type=self.content_type,
-            timestamp=self.created_at,
-            headers=self.metadata,
-            reply_to=self.reply_to,
-            correlation_id=self.correlation_id,
-            expiration=self.timeout_ms)
+    def __str__(self):
+        pretty = "Message {\n"
+        pretty += "  topic = {}\n".format(self.topic)
+        created_at = datetime.fromtimestamp(self.created_at)
+        pretty += "  created_at = {}\n".format(created_at)
+        if self.has_correlation_id():
+            pretty += "  correlation_id = {}\n".format(self.correlation_id)
+        if self.has_reply_to():
+            pretty += "  reply_to = {}\n".format(self.reply_to)
+        if self.has_subscription_id():
+            pretty += "  subscription_id = {}\n".format(self.subscription_id)
+        if self.has_timeout():
+            pretty += "  timeout = {}\n".format(self.timeout)
+        if self.has_metadata():
+            pretty += "  metadata = {}\n".format(self.metadata)
+        if self.has_content_type():
+            pretty += "  content_type = {}\n".format(
+                ContentType.Name(self.content_type))
+        pretty += "  body[{}] = {} \n".format(len(self.body), repr(self.body))
+        pretty += "}\n"
+        return pretty
 
-    def from_amqp_properties(self, props):
-        self.created_at = props.timestamp
-        self.correlation_id = props.correlation_id
-        self.reply_to = props.reply_to
-        self.timeout_ms = props.expiration
-        self.content_type = props.content_type
-
-        self.metadata = props.headers
-        if 'rpc-status' in self.metadata:
-            status = self.metadata['rpc-status']
-            if isinstance(status, str):
-                self.metadata['rpc-status'] = json.loads(status)
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
 
     def create_reply(self):
         reply = Message()
-        reply.topic = self.reply_to
-        reply.correlation_id = self.correlation_id
-        reply.content_type = self.content_type
+        if self.has_reply_to():
+            reply.topic = self.reply_to
+        if self.has_correlation_id():
+            reply.correlation_id = self.correlation_id
+        if self.has_content_type():
+            reply.content_type = self.content_type
         return reply
 
     ## topic
@@ -63,7 +64,9 @@ class Message(object):
     def topic(self, topic):
         assert_type(topic, str, "topic")
         self._topic = topic
-        return self
+
+    def has_topic(self):
+        return self._topic != None and len(self._topic) != 0
 
     ## reply_to
 
@@ -79,16 +82,14 @@ class Message(object):
             self.correlation_id = new_uuid()
 
         if isinstance(value, Subscription):
-            self._reply_to = value.name()
-            self.subscription_id = value.id()
+            self._reply_to = value.name
+            self.subscription_id = value.id
 
         elif isinstance(value, str):
             self._reply_to = value
 
-        return self
-
     def has_reply_to(self):
-        return self._reply_to != None
+        return self._reply_to != None and len(self._reply_to) != 0
 
     ## subscription_id
 
@@ -100,10 +101,10 @@ class Message(object):
     def subscription_id(self, value):
         assert_type(value, str, "subscription_id")
         self._subscription_id = value
-        return self
 
     def has_subscription_id(self):
-        return self.subscription_id != None
+        return self._subscription_id != None and len(
+            self._subscription_id) != 0
 
     ## correlation_id
 
@@ -115,7 +116,6 @@ class Message(object):
     def correlation_id(self, value):
         assert_type(value, (int, long), "correlation_id")
         self._correlation_id = value
-        return self
 
     def has_correlation_id(self):
         return self._correlation_id != None
@@ -130,10 +130,9 @@ class Message(object):
     def body(self, value):
         assert_type(value, (bytes, str), "body")
         self._body = value
-        return self
 
     def has_body(self):
-        return self._body != None and self._body != ""
+        return self._body != None and len(self._body) != 0
 
     ## content_type
 
@@ -150,8 +149,6 @@ class Message(object):
         elif isinstance(value, int):
             self._content_type = value
 
-        return self
-
     def has_content_type(self):
         return self._content_type != None
 
@@ -165,13 +162,23 @@ class Message(object):
     def created_at(self, timestamp):
         #assert_type(timestamp, (), "created_at")
         self._created_at = timestamp
-        return self
+
+    def has_created_at(self):
+        return self._created_at != None
 
     ## metadata
 
     @property
     def metadata(self):
         return self._metadata
+
+    @metadata.setter
+    def metadata(self, value):
+        assert_type(value, dict, "metadata")
+        self._metadata = value
+
+    def has_metadata(self):
+        return len(self._metadata) != 0
 
     ## on_reply
 
@@ -183,53 +190,25 @@ class Message(object):
     def on_reply(self, handle):
         #assert_type(handle, (), "on_reply")
         self._on_reply = handle
-        return self
 
     def has_on_reply(self):
         return self._on_reply != None
 
-    ## on_timeout
-
-    @property
-    def on_timeout(self):
-        return self._on_timeout
-
-    @on_timeout.setter
-    def on_timeout(self, handle):
-        #assert_type(handle, (), "on_timeout")
-        self._on_timeout = handle
-        return self
-
-    def has_on_timeout(self):
-        return self._on_timeout != None
-
-    ##
+    ## timeout
 
     @property
     def timeout(self):
         return self._timeout
 
     @timeout.setter
-    def timeout(self, milliseconds):
-        assert_type(milliseconds, (int, float, long), "timeout")
-        self._timeout = milliseconds
-        return self
+    def timeout(self, seconds):
+        assert_type(seconds, (int, float, long), "timeout")
+        self._timeout = seconds
 
     def has_timeout(self):
         return self._timeout != None
 
     ##
-
-    @staticmethod
-    def content_type_to_wire(content_type):
-        """ Converts an object of type ContentType to the wire string representation 
-        Args:
-            content_type (ContentType): enum value
-        Returns:
-            str: wire string representation
-        """
-        if content_type == ContentType.Value("PROTOBUF"):
-            return 'application/x-protobuf'
 
     def pack(self, obj):
         if not self.has_content_type():
@@ -242,15 +221,12 @@ class Message(object):
                 "Serialization to '{}' type not implemented".format(
                     ContentType.Name(self.content_type)))
 
-        return self
-
     def unpack(self, schema):
         obj = schema()
         if not self.has_content_type():
             self.content_type = "protobuf"
 
         if self.content_type == ContentType.Value("PROTOBUF"):
-            self.body = obj.SerializeToString()
             obj.ParseFromString(self.body)
         else:
             raise NotImplementedError(
