@@ -1,4 +1,4 @@
-from utils import new_uuid, consumer_id
+from .utils import consumer_id
 
 
 class Subscription(object):

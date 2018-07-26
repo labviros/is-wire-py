@@ -1,9 +1,10 @@
 from is_msgs import wire_pb2
-from message import Message
+
+from .message import Message
 
 
 def content_type_to_wire(content_type):
-    """ Converts an object of type ContentType to the wire string representation 
+    """ Converts an object of type ContentType to the wire string representation.
     Args:
         content_type (ContentType): enum value
     Returns:
@@ -21,7 +22,7 @@ def content_type_to_wire(content_type):
 
 
 def content_type_from_wire(string):
-    """ Converts the ContentType wire string representation to the enum form
+    """ Converts the ContentType wire string representation to the enum form.
     Args:
         string (str): wire string representation
     Returns:
@@ -37,7 +38,6 @@ def content_type_from_wire(string):
 
 
 class WireV1(object):
-
     @staticmethod
     def from_amqp_message(amqp):
         message = Message()

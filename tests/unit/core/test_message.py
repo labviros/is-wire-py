@@ -1,6 +1,8 @@
+from __future__ import print_function
 from is_wire.core import Message, now
 from is_msgs.wire_pb2 import ContentType
-from is_msgs.wire_pb2 import WireFormat
+from google.protobuf.struct_pb2 import Struct
+import six
 import pytest
 
 
@@ -17,51 +19,51 @@ def test_default_constructor():
     assert message.has_metadata() is False
 
 
-string_only = [
-    ("string", True),
-    (int(-1), False),
-    (long(-1), False),
-    (0.0, False),
-]
-
-integer_only = [
-    ("string", False),
-    (int(-1), True),
-    (long(-1), True),
-    (0.0, False),
-]
-
-number_only = [
-    ("string", False),
-    (int(-1), True),
-    (long(-1), True),
-    (0.0, True),
-]
-
+_integer = [int(-1)]
+_string = [str("str")]
+_float = [float(-1.0)]
+_number = _integer + _float
 no_check_FIX_ME = []
 
 
 @pytest.mark.parametrize(
-    "property,valid_types",
+    "property,valid_types,invalid_types",
     [
-        ("topic", string_only),
-        ("reply_to", string_only),
-        ("subscription_id", string_only),
-        ("correlation_id", integer_only),
-        ("body", string_only),
+        ("topic", _string, _number),
+        ("reply_to", _string, _number),
+        ("subscription_id", _string, _number),
+        ("correlation_id", _integer, _float + _string),
+        #("body", string_only),
         #("content_type", content_type_only),
-        ("created_at", no_check_FIX_ME),
-        ("timeout", number_only),
+        ("created_at", no_check_FIX_ME, no_check_FIX_ME),
+        ("timeout", _number, _string),
     ])
-def test_type_safety(property, valid_types):
+def test_type_safety(property, valid_types, invalid_types):
     message = Message()
-    for value, should_work in valid_types:
-        if should_work:
+    for value in valid_types:
+        print("valid value=", value)
+        setattr(message, property, value)
+        assert getattr(message, property) == value
+
+    for value in invalid_types:
+        print("invalid value=", value)
+        with pytest.raises(TypeError):
             setattr(message, property, value)
-            assert getattr(message, property) is value
-        else:
-            with pytest.raises(TypeError):
-                setattr(message, property, value)
+
+
+def test_type_safety_body():
+    message = Message()
+    message.body = "string"
+    assert message.body == str.encode("string")
+
+    message.body = str.encode("string")
+    assert message.body == str.encode("string")
+
+    with pytest.raises(TypeError):
+        message.body = -1
+
+    with pytest.raises(TypeError):
+        message.body = -1.0
 
 
 @pytest.mark.parametrize("attr,value,checker", [
@@ -81,15 +83,20 @@ def test_has_field(attr, value, checker):
 
 
 def test_pack_unpack():
-    wire = WireFormat()
-    wire.raw = "body body"
+    struct = Struct()
+    struct.fields["key"].number_value = 0.1212121921839893438974837 
 
     message = Message()
-    message.pack(wire)
-    print repr(message.body)
-    assert str(wire) == str(message.unpack(WireFormat))
+    message.pack(struct)
+
+    assert message.content_type == ContentType.Value("PROTOBUF")
+    assert str(struct) == str(message.unpack(Struct))
+    assert struct == message.unpack(Struct)
 
     message.content_type = "json"
+    message.pack(struct)
+    assert str(struct) == str(message.unpack(Struct))
+    assert struct == message.unpack(Struct)
 
 
 def test_create_reply():

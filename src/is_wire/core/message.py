@@ -1,10 +1,14 @@
-from subscription import Subscription
 from is_msgs.wire_pb2 import ContentType
 from datetime import datetime
-from utils import now, assert_type, new_uuid
+from google.protobuf import json_format
+import six
+
+from .utils import now, assert_type, new_uuid
+from .subscription import Subscription
 
 
 class Message(object):
+
     def __init__(self, obj=None):
         self._topic = None
         self._body = ''
@@ -16,7 +20,7 @@ class Message(object):
         self._metadata = {}
         self._timeout = None
 
-        if obj != None:
+        if obj is not None:
             self.pack(obj)
 
     def __str__(self):
@@ -54,7 +58,7 @@ class Message(object):
             reply.content_type = self.content_type
         return reply
 
-    ## topic
+    # topic
 
     @property
     def topic(self):
@@ -66,9 +70,9 @@ class Message(object):
         self._topic = topic
 
     def has_topic(self):
-        return self._topic != None and len(self._topic) != 0
+        return self._topic is not None and len(self._topic) != 0
 
-    ## reply_to
+    # reply_to
 
     @property
     def reply_to(self):
@@ -78,7 +82,7 @@ class Message(object):
     def reply_to(self, value):
         assert_type(value, (str, Subscription), "reply_to")
 
-        if self.correlation_id == None:
+        if self.correlation_id is None:
             self.correlation_id = new_uuid()
 
         if isinstance(value, Subscription):
@@ -89,9 +93,9 @@ class Message(object):
             self._reply_to = value
 
     def has_reply_to(self):
-        return self._reply_to != None and len(self._reply_to) != 0
+        return self._reply_to is not None and len(self._reply_to) != 0
 
-    ## subscription_id
+    # subscription_id
 
     @property
     def subscription_id(self):
@@ -103,10 +107,10 @@ class Message(object):
         self._subscription_id = value
 
     def has_subscription_id(self):
-        return self._subscription_id != None and len(
+        return self._subscription_id is not None and len(
             self._subscription_id) != 0
 
-    ## correlation_id
+    # correlation_id
 
     @property
     def correlation_id(self):
@@ -114,13 +118,13 @@ class Message(object):
 
     @correlation_id.setter
     def correlation_id(self, value):
-        assert_type(value, (int, long), "correlation_id")
+        assert_type(value, six.integer_types, "correlation_id")
         self._correlation_id = value
 
     def has_correlation_id(self):
-        return self._correlation_id != None
+        return self._correlation_id is not None
 
-    ## body
+    # body
 
     @property
     def body(self):
@@ -129,12 +133,12 @@ class Message(object):
     @body.setter
     def body(self, value):
         assert_type(value, (bytes, str), "body")
-        self._body = value
+        self._body = six.b(value) if isinstance(value, str) else value
 
     def has_body(self):
-        return self._body != None and len(self._body) != 0
+        return self._body is not None and len(self._body) != 0
 
-    ## content_type
+    # content_type
 
     @property
     def content_type(self):
@@ -142,7 +146,7 @@ class Message(object):
 
     @content_type.setter
     def content_type(self, value):
-        assert_type(value, (str, int), "content_type")
+        assert_type(value, [str] + list(six.integer_types), "content_type")
 
         if isinstance(value, str):
             self._content_type = ContentType.Value(value.upper())
@@ -150,9 +154,9 @@ class Message(object):
             self._content_type = value
 
     def has_content_type(self):
-        return self._content_type != None
+        return self._content_type is not None
 
-    ## created_at
+    # created_at
 
     @property
     def created_at(self):
@@ -160,13 +164,13 @@ class Message(object):
 
     @created_at.setter
     def created_at(self, timestamp):
-        #assert_type(timestamp, (), "created_at")
+        # assert_type(timestamp, (), "created_at")
         self._created_at = timestamp
 
     def has_created_at(self):
-        return self._created_at != None
+        return self._created_at is not None
 
-    ## metadata
+    # metadata
 
     @property
     def metadata(self):
@@ -180,7 +184,7 @@ class Message(object):
     def has_metadata(self):
         return len(self._metadata) != 0
 
-    ## on_reply
+    # on_reply
 
     @property
     def on_reply(self):
@@ -188,13 +192,13 @@ class Message(object):
 
     @on_reply.setter
     def on_reply(self, handle):
-        #assert_type(handle, (), "on_reply")
+        # assert_type(handle, (), "on_reply")
         self._on_reply = handle
 
     def has_on_reply(self):
-        return self._on_reply != None
+        return self._on_reply is not None
 
-    ## timeout
+    # timeout
 
     @property
     def timeout(self):
@@ -202,13 +206,13 @@ class Message(object):
 
     @timeout.setter
     def timeout(self, seconds):
-        assert_type(seconds, (int, float, long), "timeout")
+        assert_type(seconds, [float] + list(six.integer_types), "timeout")
         self._timeout = seconds
 
     def has_timeout(self):
-        return self._timeout != None
+        return self._timeout is not None
 
-    ##
+    # pack / unpack
 
     def pack(self, obj):
         if not self.has_content_type():
@@ -216,6 +220,9 @@ class Message(object):
 
         if self.content_type == ContentType.Value("PROTOBUF"):
             self.body = obj.SerializeToString()
+        elif self.content_type == ContentType.Value("JSON"):
+            self.body = json_format.MessageToJson(
+                obj, indent=0, including_default_value_fields=True)
         else:
             raise NotImplementedError(
                 "Serialization to '{}' type not implemented".format(
@@ -228,6 +235,8 @@ class Message(object):
 
         if self.content_type == ContentType.Value("PROTOBUF"):
             obj.ParseFromString(self.body)
+        elif self.content_type == ContentType.Value("JSON"):
+            obj = json_format.Parse(self.body, obj)
         else:
             raise NotImplementedError(
                 "Deserialization from '{}' type not implemented".format(

@@ -1,13 +1,13 @@
 import librabbitmq
-from message import Message
-from urlparse import urlparse
-from wire import WireV1
-from subscription import Subscription
+
+from six.moves import urllib
+from .wire import WireV1
 
 
 class Channel(object):
-    def __init__(self, uri):
-        url = urlparse(uri)
+
+    def __init__(self, uri="amqp://guest:guest@localhost:5672"):
+        url = urllib.parse.urlparse(uri)
 
         self.connection = librabbitmq.Connection(
             host=url.hostname or "localhost",
@@ -26,11 +26,11 @@ class Channel(object):
     def _on_message(self, message):
         self.amqp_message = message
 
-    def publish(self, message):
+    def publish(self, message, topic=None):
         self._channel.basic_publish(
             body=message.body,
             exchange=self._exchange,
-            routing_key=message.topic,
+            routing_key=message.topic if topic is None else topic,
             properties=WireV1.to_amqp_properties(message),
         )
 

@@ -14,3 +14,4 @@
 .pytest_cache
 src/is_wire.egg-info
 __pycache__
+.coverage

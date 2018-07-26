@@ -8,8 +8,12 @@ import re
 opencensus.trace.span_context.TRACE_ID_PATTERN = re.compile('[0-9a-f]{16}?')
 opencensus.trace.span_context._INVALID_TRACE_ID = '0' * 16
 
+
 class ZipkinTracer:
-    def __init__(self, host_name='localhost', port=9411, service_name='my_service'):
+    def __init__(self,
+                 host_name='localhost',
+                 port=9411,
+                 service_name='my_service'):
         self.exporter = ZipkinExporter(
             host_name=host_name, port=port, service_name=service_name)
         self.__tracers = {}
@@ -21,7 +25,8 @@ class ZipkinTracer:
             span_context = SpanContext(trace_id=trace_id, span_id=span_id)
         else:
             span_context = None
-        tracer = tracer_module.Tracer(exporter=self.exporter, span_context=span_context)
+        tracer = tracer_module.Tracer(
+            exporter=self.exporter, span_context=span_context)
         span = tracer.start_span(span_name)
         span_id = format_span_json(span)['spanId']
         trace_id = tracer.span_context.trace_id
@@ -51,5 +56,7 @@ class ZipkinTracer:
                 context.update(span)
                 f(msg, context)
                 self.end_span(span)
+
             return wrapper
+
         return interceptor_dec

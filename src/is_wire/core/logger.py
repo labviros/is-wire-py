@@ -1,62 +1,47 @@
-import sys
+from colorlog import ColoredFormatter, StreamHandler, getLogger
 import logging
-from uuid import uuid4
-from datetime import datetime
-from termcolor import colored
 
-from .utils import current_time
-
-''' based on: https://gist.github.com/brainsik/1238935 '''
-class ColorLog(object):
-
-    colormap = dict(
-        info=dict(color='white'),
-        warn=dict(color='yellow'),
-        error=dict(color='red'),
-        critical=dict(color='white', on_color='on_red', attrs=['bold']),
-    )
-
-    def __init__(self, logger):
-        self._log = logger
-
-    def __getattr__(self, name):
-        if name in ['info', 'warn', 'error', 'critical']:
-            return lambda s, *args: getattr(self._log, name)(
-                colored(s, **self.colormap[name]), *args)
-
-        return getattr(self._log, name)
-
-''' based on: https://stackoverflow.com/questions/6290739/python-logging-use-milliseconds-in-time-format'''
-class MyFormatter(logging.Formatter):
-    converter = datetime.fromtimestamp
-    def formatTime(self, record, datefmt=None):
-        ct = self.converter(record.created)
-        if datefmt:
-            s = ct.strftime(datefmt)
-        else:
-            t = ct.strftime('%d-%m-%Y %H:%M:%S')
-            s = '%s:%03d' % (t, record.msecs)
-        return s
 
 class Logger:
-    def __init__(self, name='__name__', level=logging.INFO):
-        self.LOGGING_FMT = '[%(levelname)s][%(process)d][%(asctime)s] %(message)s'
-        self.log = ColorLog(logging.getLogger(name='{}{:X}'.format(name, uuid4().int >> 64)))
-        formatter = MyFormatter(fmt=self.LOGGING_FMT)
-        console = logging.StreamHandler()
-        self.log.addHandler(console)
-        console.setFormatter(formatter)
-        self.log.setLevel(level)
+
+    def __init__(self, name, level=logging.DEBUG):
+        style = "%(log_color)s[%(levelname)-8s][%(thread)d][%(asctime)s]" \
+                "[%(name)s] %(message)s"
+
+        formatter = ColoredFormatter(
+            style,
+            datefmt=None,
+            reset=True,
+            log_colors={
+                'DEBUG': 'cyan',
+                'INFO': 'white',
+                'WARNING': 'yellow',
+                'ERROR': 'red',
+                'CRITICAL': 'red,bg_white',
+            },
+            secondary_log_colors={},
+            style='%')
+
+        handler = StreamHandler()
+        handler.setFormatter(formatter)
+        self.logger = getLogger(name)
+        self.logger.addHandler(handler)
+        self.set_level(level)
+
+    def set_level(self, level):
+        self.logger.setLevel(level)
+
+    def debug(self, formatter, *args):
+        self.logger.debug(formatter.format(*args))
 
     def info(self, formatter, *args):
-        self.log.info(formatter.format(*args))
+        self.logger.info(formatter.format(*args))
 
     def warn(self, formatter, *args):
-        self.log.warn(formatter.format(*args))
+        self.logger.warn(formatter.format(*args))
 
     def error(self, formatter, *args):
-        self.log.error(formatter.format(*args))
-    
+        self.logger.error(formatter.format(*args))
+
     def critical(self, formatter, *args):
-        self.log.critical(formatter.format(*args))
-        sys.exit(-1)
+        self.logger.critical(formatter.format(*args))
