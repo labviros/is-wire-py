@@ -1,6 +1,5 @@
 from __future__ import print_function
-from is_wire.core import Message, now
-from is_msgs.wire_pb2 import ContentType
+from is_wire.core import Message, now, ContentType, Status
 from google.protobuf.struct_pb2 import Struct
 import six
 import pytest
@@ -23,21 +22,22 @@ _integer = [int(-1)]
 _string = [str("str")]
 _float = [float(-1.0)]
 _number = _integer + _float
+_content_type = [ContentType.PROTOBUF]
+_status = [Status()]
+_dict = [{}]
 no_check_FIX_ME = []
 
 
-@pytest.mark.parametrize(
-    "property,valid_types,invalid_types",
-    [
-        ("topic", _string, _number),
-        ("reply_to", _string, _number),
-        ("subscription_id", _string, _number),
-        ("correlation_id", _integer, _float + _string),
-        #("body", string_only),
-        #("content_type", content_type_only),
-        ("created_at", no_check_FIX_ME, no_check_FIX_ME),
-        ("timeout", _number, _string),
-    ])
+@pytest.mark.parametrize("property,valid_types,invalid_types",
+                         [("topic", _string, _number),
+                          ("reply_to", _string, _number),
+                          ("subscription_id", _string, _number),
+                          ("correlation_id", _integer, _float + _string),
+                          ("content_type", _content_type, _number + _string),
+                          ("created_at", no_check_FIX_ME, no_check_FIX_ME),
+                          ("timeout", _number, _string),
+                          ("status", _status, _number + _string),
+                          ("metadata", _dict, _number + _string)])
 def test_type_safety(property, valid_types, invalid_types):
     message = Message()
     for value in valid_types:
@@ -72,8 +72,9 @@ def test_type_safety_body():
     ("subscription_id", "string", Message.has_subscription_id),
     ("correlation_id", -1, Message.has_correlation_id),
     ("body", "string", Message.has_body),
-    ("content_type", "json", Message.has_content_type),
+    ("content_type", ContentType.JSON, Message.has_content_type),
     ("timeout", 10.0, Message.has_timeout),
+    ("status", Status(), Message.has_status),
 ])
 def test_has_field(attr, value, checker):
     message = Message()
@@ -84,16 +85,16 @@ def test_has_field(attr, value, checker):
 
 def test_pack_unpack():
     struct = Struct()
-    struct.fields["key"].number_value = 0.1212121921839893438974837 
+    struct.fields["key"].number_value = 0.1212121921839893438974837
 
     message = Message()
     message.pack(struct)
 
-    assert message.content_type == ContentType.Value("PROTOBUF")
+    assert message.content_type == ContentType.PROTOBUF
     assert str(struct) == str(message.unpack(Struct))
     assert struct == message.unpack(Struct)
 
-    message.content_type = "json"
+    message.content_type = ContentType.JSON
     message.pack(struct)
     assert str(struct) == str(message.unpack(Struct))
     assert struct == message.unpack(Struct)
@@ -103,7 +104,7 @@ def test_create_reply():
     request = Message()
     request.topic = "topic"
     request.reply_to = "reply_to"
-    request.content_type = "json"
+    request.content_type = ContentType.JSON
 
     reply = request.create_reply()
 

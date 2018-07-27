@@ -1,7 +1,7 @@
 import librabbitmq
 
 from six.moves import urllib
-from .wire import WireV1
+from .wire.conversion import WireV1
 
 
 class Channel(object):

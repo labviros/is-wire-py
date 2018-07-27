@@ -1,14 +1,15 @@
-from is_msgs.wire_pb2 import ContentType
 from datetime import datetime
 from google.protobuf import json_format
+from six import integer_types, string_types, binary_type
 import six
 
 from .utils import now, assert_type, new_uuid
 from .subscription import Subscription
+from .wire.status import Status
+from .wire.content_type import ContentType
 
 
 class Message(object):
-
     def __init__(self, obj=None):
         self._topic = None
         self._body = ''
@@ -19,6 +20,7 @@ class Message(object):
         self._created_at = now()
         self._metadata = {}
         self._timeout = None
+        self._status = None
 
         if obj is not None:
             self.pack(obj)
@@ -39,8 +41,7 @@ class Message(object):
         if self.has_metadata():
             pretty += "  metadata = {}\n".format(self.metadata)
         if self.has_content_type():
-            pretty += "  content_type = {}\n".format(
-                ContentType.Name(self.content_type))
+            pretty += "  content_type = {}\n".format(self.content_type.name)
         pretty += "  body[{}] = {} \n".format(len(self.body), repr(self.body))
         pretty += "}\n"
         return pretty
@@ -66,7 +67,7 @@ class Message(object):
 
     @topic.setter
     def topic(self, topic):
-        assert_type(topic, str, "topic")
+        assert_type(topic, string_types, "topic")
         self._topic = topic
 
     def has_topic(self):
@@ -80,7 +81,7 @@ class Message(object):
 
     @reply_to.setter
     def reply_to(self, value):
-        assert_type(value, (str, Subscription), "reply_to")
+        assert_type(value, list(string_types) + [Subscription], "reply_to")
 
         if self.correlation_id is None:
             self.correlation_id = new_uuid()
@@ -89,7 +90,7 @@ class Message(object):
             self._reply_to = value.name
             self.subscription_id = value.id
 
-        elif isinstance(value, str):
+        elif isinstance(value, string_types):
             self._reply_to = value
 
     def has_reply_to(self):
@@ -103,7 +104,7 @@ class Message(object):
 
     @subscription_id.setter
     def subscription_id(self, value):
-        assert_type(value, str, "subscription_id")
+        assert_type(value, string_types, "subscription_id")
         self._subscription_id = value
 
     def has_subscription_id(self):
@@ -118,7 +119,7 @@ class Message(object):
 
     @correlation_id.setter
     def correlation_id(self, value):
-        assert_type(value, six.integer_types, "correlation_id")
+        assert_type(value, integer_types, "correlation_id")
         self._correlation_id = value
 
     def has_correlation_id(self):
@@ -132,8 +133,8 @@ class Message(object):
 
     @body.setter
     def body(self, value):
-        assert_type(value, (bytes, str), "body")
-        self._body = six.b(value) if isinstance(value, str) else value
+        assert_type(value, [binary_type] + list(string_types), "body")
+        self._body = six.b(value) if isinstance(value, string_types) else value
 
     def has_body(self):
         return self._body is not None and len(self._body) != 0
@@ -146,12 +147,8 @@ class Message(object):
 
     @content_type.setter
     def content_type(self, value):
-        assert_type(value, [str] + list(six.integer_types), "content_type")
-
-        if isinstance(value, str):
-            self._content_type = ContentType.Value(value.upper())
-        elif isinstance(value, int):
-            self._content_type = value
+        assert_type(value, ContentType, "content_type")
+        self._content_type = value
 
     def has_content_type(self):
         return self._content_type is not None
@@ -206,40 +203,54 @@ class Message(object):
 
     @timeout.setter
     def timeout(self, seconds):
-        assert_type(seconds, [float] + list(six.integer_types), "timeout")
+        assert_type(seconds, [float] + list(integer_types), "timeout")
         self._timeout = seconds
 
     def has_timeout(self):
         return self._timeout is not None
 
+    # status
+
+    @property
+    def status(self):
+        return self._status
+
+    @status.setter
+    def status(self, value):
+        assert_type(value, Status, "status")
+        self._status = value
+
+    def has_status(self):
+        return self._status is not None
+
     # pack / unpack
 
     def pack(self, obj):
         if not self.has_content_type():
-            self.content_type = "protobuf"
+            self.content_type = ContentType.PROTOBUF
 
-        if self.content_type == ContentType.Value("PROTOBUF"):
+        if self.content_type == ContentType.PROTOBUF:
             self.body = obj.SerializeToString()
-        elif self.content_type == ContentType.Value("JSON"):
+        elif self.content_type == ContentType.JSON:
             self.body = json_format.MessageToJson(
                 obj, indent=0, including_default_value_fields=True)
         else:
             raise NotImplementedError(
                 "Serialization to '{}' type not implemented".format(
-                    ContentType.Name(self.content_type)))
+                    self.content_type.name))
 
     def unpack(self, schema):
         obj = schema()
         if not self.has_content_type():
-            self.content_type = "protobuf"
+            self.content_type = ContentType.PROTOBUF
 
-        if self.content_type == ContentType.Value("PROTOBUF"):
+        if self.content_type == ContentType.PROTOBUF:
             obj.ParseFromString(self.body)
-        elif self.content_type == ContentType.Value("JSON"):
+        elif self.content_type == ContentType.JSON:
             obj = json_format.Parse(self.body, obj)
         else:
             raise NotImplementedError(
                 "Deserialization from '{}' type not implemented".format(
-                    ContentType.Name(self.content_type)))
+                    self.content_type.name))
 
         return obj

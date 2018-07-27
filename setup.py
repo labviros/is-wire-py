@@ -13,6 +13,7 @@ setup(
     install_requires=[
         'colorlog==3.1.4',
         'librabbitmq==2.0.0',
+        'enum34==1.1.6',
         'is-msgs',
         'is-opencensus',
     ]
