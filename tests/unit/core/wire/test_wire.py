@@ -14,7 +14,16 @@ def test_amqp_conversion():
     message.body = '{"field":"value"}'
     message.topic = "MyTopic"
     message.status = Status(
-        code=StatusCode.FAILED_PRECONDITION, why="Bad Args...")
+        code=StatusCode.FAILED_PRECONDITION,
+        why="Bad Args...",
+    )
+    message.metadata = {
+        'x-b3-sampled': '1',
+        'x-b3-traceid': 'f047c6f208eb36ab',
+        'x-b3-flags': '0',
+        'x-b3-spanid': 'ef81a2f9c261473d',
+        'x-b3-parentspanid': '0000000000000000'
+    }
 
     if isinstance(message.body, bytes):
         memory_view = memoryview(message.body)

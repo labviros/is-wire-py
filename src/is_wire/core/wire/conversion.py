@@ -27,7 +27,7 @@ class WireV1(object):
             message.reply_to = properties["reply_to"]
 
         if "expiration" in properties:
-            message.timeout = int(properties["expiration"])
+            message.timeout = int(properties["expiration"]) / 1000.0
 
         if "timestamp" in properties:
             message.created_at = properties["timestamp"] / 1000.0
@@ -49,6 +49,8 @@ class WireV1(object):
     @staticmethod
     def to_amqp_properties(message):
         properties = {}
+        properties["timestamp"] = int(message.created_at * 1000)
+
         if message.has_content_type():
             properties["content_type"] = content_type_to_wire(
                 message.content_type)
@@ -62,7 +64,7 @@ class WireV1(object):
         if message.has_timeout():
             properties["expiration"] = str(int(message.timeout * 1000))
 
-        if not len(message.metadata) is 0:
+        if len(message.metadata) != 0:
             properties["headers"] = message.metadata
         else:
             properties["headers"] = {}
@@ -75,5 +77,4 @@ class WireV1(object):
             properties["headers"]["rpc-status"] = json_format.MessageToJson(
                 status, indent=0, including_default_value_fields=True)
 
-        properties["timestamp"] = int(message.created_at * 1000)
         return properties

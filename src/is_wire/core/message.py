@@ -7,6 +7,7 @@ from .utils import now, assert_type, new_uuid
 from .subscription import Subscription
 from .wire.status import Status
 from .wire.content_type import ContentType
+from .tracing.propagation import TextFormatPropagator
 
 
 class Message(object):
@@ -222,6 +223,20 @@ class Message(object):
 
     def has_status(self):
         return self._status is not None
+
+    # tracing
+
+    def extract_tracing(self):
+        propagator = TextFormatPropagator()
+        return propagator.from_carrier(self.metadata)
+
+    def inject_tracing(self, span):
+        propagator = TextFormatPropagator()
+        span_context = TextFormatPropagator.new_span_context(
+            trace_id=span.context_tracer.trace_id,
+            span_id=span.span_id,
+        )
+        self.metadata = propagator.to_carrier(span_context, self.metadata)
 
     # pack / unpack
 

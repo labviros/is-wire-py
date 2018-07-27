@@ -5,7 +5,6 @@ from .wire.conversion import WireV1
 
 
 class Channel(object):
-
     def __init__(self, uri="amqp://guest:guest@localhost:5672"):
         url = urllib.parse.urlparse(uri)
 
@@ -27,11 +26,15 @@ class Channel(object):
         self.amqp_message = message
 
     def publish(self, message, topic=None):
-        self._channel.basic_publish(
+        amqp = librabbitmq.Message(
             body=message.body,
+            channel=self._channel,
+            properties=WireV1.to_amqp_properties(message))
+
+        self._channel.basic_publish(
             exchange=self._exchange,
             routing_key=message.topic if topic is None else topic,
-            properties=WireV1.to_amqp_properties(message),
+            body=amqp,
         )
 
     def consume(self, timeout=None):
