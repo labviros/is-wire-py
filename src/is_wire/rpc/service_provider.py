@@ -1,64 +1,93 @@
-import sys
+from ..core import Channel, Subscription, Status, StatusCode, Logger
+from ..core.utils import assert_type
+from .interceptor import Interceptor
+from .context import Context
+import traceback
+import six
+from google.protobuf.json_format import ParseError
 
-from ..core import Channel, Subscription, Message
-from ..core.utils import current_time
 
-class ServiceProvider:
+class ServiceProvider(object):
+    log = Logger("ServiceProvider", Logger.DEBUG)
+
     def __init__(self, channel):
-        self.__channel = channel
-        self.__interceptors = []
-       
-    def __deadline_exceeded(self, msg):
-        if msg.has_timeout_ms():
-            dt = current_time() - msg.created_at()
-            return not dt < int(msg.timeout_ms())
-        else:
-            return False
+        assert_type(channel, Channel, "channel")
+        self._channel = channel
+        self._services = {}
+        self._interceptors = []
+
+    def delegate(self, topic, function, request_type, reply_type):
+        """ Bind a function to a particular topic, so everytime a message is
+            received in this topic the function will be called """
+        assert_type(topic, six.string_types, "topic")
+        self.log.debug("New service registered '{}'", topic)
+        subscription = Subscription(self._channel, name=topic)
+        wrapped = self.wrap(function, request_type, reply_type)
+        self._services[subscription.id] = wrapped
 
     def add_interceptor(self, interceptor):
-        self.__interceptors.append(interceptor)
+        if not issubclass(type(interceptor), Interceptor):
+            raise TypeError(
+                "Interceptors must derive from the Interceptor class")
+        self._interceptors.append(interceptor)
 
-    def delegate(self, service, request_pb, reply_pb, service_impl):
-        subscription = Subscription(self.__channel, service)
-        def wrapper(request_msg, context):
-            context['service_name'] = service
-            for intc in self.__interceptors:
-                context = intc.before_call(context)
-            
-            request = request_msg.unpack(request_pb)
-            reply = None
-            status = {'code': '', 'why': ''}
-            if request:
+    def serve(self, message):
+        """ Attempts to serve message """
+        if message.subscription_id in self._services:
+            reply = self._services[message.subscription_id](message)
+            if reply.has_topic():
+                self._channel.publish(reply)
+        else:
+            self.log.debug("Ignoring request\n{}", message.short_string())
+
+    def run(self):
+        """ Blocks the current thread listening for requests """
+        self.log.info("Listening for requests")
+        while True:
+            self.serve(self._channel.consume())
+
+    def wrap(self, function, request_type, reply_type):
+        def safe_call(*args):
+            try:
+                return function(*args)
+            except Exception:
+                return Status(
+                    code=StatusCode.INTERNAL_ERROR,
+                    why="Service throwed exception:\n{}".format(
+                        traceback.format_exc()),
+                )
+
+        def run_interceptors(interceptors, method, *args):
+            for interceptor in interceptors:
                 try:
-                    if not self.__deadline_exceeded(request_msg):
-                        reply, status = service_impl(request)
-                except Exception as ex:
-                    status['code'] = 'INTERNAL_ERROR'
-                    status['why'] = 'Service \'{}\' throwed an exception: \'{}\''.format(service, ex)
-                except:
-                    status['code'] = 'INTERNAL_ERROR'
-                    status['why'] = 'Service \'{}\' throwed unkown exception of type \'{}\''.format(service, sys.exc_info()[0])
-            else:
-                status['code'] = 'FAILED_PRECONDITION' 
-                status['why'] = 'Expected request type \'{}\' but received something else'.format(request_pb.DESCRIPTOR.full_name)
-            
-            timeouted = self.__deadline_exceeded(request_msg)
-            if timeouted:
-                status['code'] = 'DEADLINE_EXCEEDED'
-                status['why'] = ''
-                     
-            context['rpc-status'] = status
-            for intc in self.__interceptors:
-                context = intc.after_call(context)
-            
-            if not timeouted:
-                reply_msg = request_msg.create_reply()
-                reply_msg.pack(reply).add_metadata({'rpc-status': status})
-                self.__channel.publish(reply_msg)
+                    getattr(interceptor, method)(*args)
+                except Exception:
+                    self.log.warn(
+                        "Interceptor '{}' throwed exception:\n{}",
+                        type(interceptor).__name__,
+                        traceback.format_exc(),
+                    )
 
-        on_request = wrapper
-        tracer = self.__channel.tracer()
-        if tracer:
-            on_request = tracer.interceptor(service)(on_request)
-    
-        subscription.subscribe(service, on_request)
+        def wrapper(request):
+            run_interceptors(self._interceptors, "before_call", request)
+
+            reply = request.create_reply()
+            try:
+                arg = request.unpack(request_type)
+                context = Context()
+                result = safe_call(arg, context)
+                if not isinstance(result, Status):
+                    assert_type(result, reply_type, "reply")
+                    reply.pack(result)
+                    reply.status = Status(code=StatusCode.OK)
+                else:
+                    reply.status = result
+            except ParseError:
+                why = "Expected request type '{}' but received something else"\
+                    .format(request_type.DESCRIPTOR.full_name)
+                reply.status = Status(StatusCode.FAILED_PRECONDITION, why)
+
+            run_interceptors(self._interceptors, "after_call", reply)
+            return reply
+
+        return wrapper

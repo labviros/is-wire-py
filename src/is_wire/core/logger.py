@@ -3,6 +3,11 @@ import logging
 
 
 class Logger:
+    DEBUG = logging.DEBUG
+    INFO = logging.INFO
+    WARN = logging.WARN
+    ERROR = logging.ERROR
+    CRITICAL = logging.CRITICAL
 
     def __init__(self, name, level=logging.DEBUG):
         style = "%(log_color)s[%(levelname)-8s][%(thread)d][%(asctime)s]" \

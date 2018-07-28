@@ -11,7 +11,7 @@ from .tracing.propagation import TextFormatPropagator
 
 
 class Message(object):
-    def __init__(self, obj=None):
+    def __init__(self, content=None, reply_to=None, content_type=None):
         self._topic = None
         self._body = ''
         self._reply_to = None
@@ -23,28 +23,56 @@ class Message(object):
         self._timeout = None
         self._status = None
 
-        if obj is not None:
-            self.pack(obj)
+        if reply_to is not None:
+            self.reply_to = reply_to
+
+        if content_type is not None:
+            self.content_type = content_type
+
+        if content is not None:
+            if isinstance(content, six.string_types):
+                self.content = content
+            else:
+                self.pack(content)
 
     def __str__(self):
-        pretty = "Message {\n"
-        pretty += "  topic = {}\n".format(self.topic)
         created_at = datetime.fromtimestamp(self.created_at)
+        pretty = "{\n"
+        pretty += "  topic = '{}'\n".format(self.topic or "")
         pretty += "  created_at = {}\n".format(created_at)
-        if self.has_correlation_id():
-            pretty += "  correlation_id = {}\n".format(self.correlation_id)
-        if self.has_reply_to():
-            pretty += "  reply_to = {}\n".format(self.reply_to)
-        if self.has_subscription_id():
-            pretty += "  subscription_id = {}\n".format(self.subscription_id)
-        if self.has_timeout():
-            pretty += "  timeout = {}\n".format(self.timeout)
-        if self.has_metadata():
-            pretty += "  metadata = {}\n".format(self.metadata)
-        if self.has_content_type():
-            pretty += "  content_type = {}\n".format(self.content_type.name)
+        pretty += "  correlation_id = {}\n".format(self.correlation_id)
+        pretty += "  reply_to = '{}'\n".format(self.reply_to or "")
+        pretty += "  subscription_id = '{}'\n".format(self.subscription_id
+                                                      or "")
+        pretty += "  timeout = {}\n".format(self.timeout)
+        pretty += "  status = {}\n".format(self.status)
+        pretty += "  metadata = {}\n".format(self.metadata)
+        pretty += "  content_type = {}\n".format(self.content_type)
         pretty += "  body[{}] = {} \n".format(len(self.body), repr(self.body))
-        pretty += "}\n"
+        pretty += '}\"'
+        return pretty
+
+    def short_string(self):
+        created_at = datetime.fromtimestamp(self.created_at)
+        pretty = "{"
+        pretty += "topic='{}'".format(self.topic)
+        pretty += " created_at={}".format(created_at)
+        if self.has_correlation_id():
+            pretty += " correlation_id={}".format(self.correlation_id)
+        if self.has_reply_to():
+            pretty += " reply_to='{}'".format(self.reply_to)
+        if self.has_subscription_id():
+            pretty += " subscription_id='{}'".format(self.subscription_id)
+        if self.has_timeout():
+            pretty += " timeout={}".format(self.timeout)
+        if self.has_status():
+            pretty += " status={}".format(self.status)
+        if self.has_metadata():
+            pretty += " metadata={}".format(self.metadata)
+        if self.has_content_type():
+            pretty += " content_type={}".format(self.content_type)
+        pretty += " body[{}]={}".format(len(self.body), repr(self.body))
+        pretty += "}"
         return pretty
 
     def __eq__(self, other):
@@ -210,6 +238,11 @@ class Message(object):
     def has_timeout(self):
         return self._timeout is not None
 
+    def deadline_exceeded(self):
+        if not self.has_timeout():
+            return False
+        return now() > self.created_at + self.timeout
+
     # status
 
     @property
@@ -227,16 +260,15 @@ class Message(object):
     # tracing
 
     def extract_tracing(self):
-        propagator = TextFormatPropagator()
-        return propagator.from_carrier(self.metadata)
+        return TextFormatPropagator.from_carrier(self.metadata)
 
     def inject_tracing(self, span):
-        propagator = TextFormatPropagator()
         span_context = TextFormatPropagator.new_span_context(
             trace_id=span.context_tracer.trace_id,
             span_id=span.span_id,
         )
-        self.metadata = propagator.to_carrier(span_context, self.metadata)
+        self.metadata = TextFormatPropagator.to_carrier(span_context,
+                                                        self.metadata)
 
     # pack / unpack
 

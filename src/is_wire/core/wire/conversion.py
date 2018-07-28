@@ -7,15 +7,15 @@ from google.protobuf import json_format
 
 class WireV1(object):
     @staticmethod
-    def from_amqp_message(amqp):
+    def from_amqp_message(amqp_message):
         message = Message()
-        message.body = amqp.body.tobytes()
+        message.body = amqp_message.body
 
-        delivery_info = amqp.delivery_info
+        delivery_info = amqp_message.delivery_info
         message.topic = delivery_info["routing_key"]
         message.subscription_id = delivery_info["consumer_tag"]
 
-        properties = amqp.properties
+        properties = amqp_message.properties
         if "content_type" in properties:
             message.content_type = content_type_from_wire(
                 properties["content_type"])
@@ -32,17 +32,18 @@ class WireV1(object):
         if "timestamp" in properties:
             message.created_at = properties["timestamp"] / 1000.0
 
-        if "headers" in properties:
-            if "rpc-status" in properties["headers"]:
-                status = json_format.Parse(properties["headers"]["rpc-status"],
-                                           wire_pb2.Status())
+        if "application_headers" in properties:
+            if "rpc-status" in properties["application_headers"]:
+                status = json_format.Parse(
+                    properties["application_headers"]["rpc-status"],
+                    wire_pb2.Status())
                 message.status = Status(
                     code=StatusCode(status.code),
                     why=status.why,
                 )
-                del properties["headers"]["rpc-status"]
+                del properties["application_headers"]["rpc-status"]
 
-            message.metadata = properties["headers"]
+            message.metadata = properties["application_headers"]
 
         return message
 
@@ -65,16 +66,17 @@ class WireV1(object):
             properties["expiration"] = str(int(message.timeout * 1000))
 
         if len(message.metadata) != 0:
-            properties["headers"] = message.metadata
+            properties["application_headers"] = message.metadata
         else:
-            properties["headers"] = {}
+            properties["application_headers"] = {}
 
         if message.has_status():
             status = wire_pb2.Status(
                 code=message.status.code.value,
                 why=message.status.why,
             )
-            properties["headers"]["rpc-status"] = json_format.MessageToJson(
-                status, indent=0, including_default_value_fields=True)
+            properties["application_headers"][
+                "rpc-status"] = json_format.MessageToJson(
+                    status, indent=0, including_default_value_fields=True)
 
         return properties

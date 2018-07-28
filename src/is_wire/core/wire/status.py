@@ -30,6 +30,10 @@ class Status(object):
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
+    def __str__(self):
+        pretty = "{{ code={} why='{}' }}".format(self.code, self.why or "")
+        return pretty
+
     @property
     def code(self):
         return self._code

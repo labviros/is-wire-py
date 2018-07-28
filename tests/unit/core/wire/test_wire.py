@@ -1,23 +1,23 @@
 from is_wire.core import Message, now, ContentType, StatusCode, Status
 from is_wire.core.wire.conversion import WireV1
 import six
-import librabbitmq
+import amqp
 import pytest
 
 
 def test_amqp_conversion():
-    message = Message()
-    message.created_at = int(now() * 1000) / 1000.0
-    message.reply_to = "reply_to"
-    message.subscription_id = "subscription_id"
-    message.content_type = ContentType.JSON
-    message.body = '{"field":"value"}'
-    message.topic = "MyTopic"
-    message.status = Status(
+    sent = Message()
+    sent.created_at = int(now() * 1000) / 1000.0
+    sent.reply_to = "reply_to"
+    sent.subscription_id = "subscription_id"
+    sent.content_type = ContentType.JSON
+    sent.body = '{"field":"value"}'
+    sent.topic = "MyTopic"
+    sent.status = Status(
         code=StatusCode.FAILED_PRECONDITION,
         why="Bad Args...",
     )
-    message.metadata = {
+    sent.metadata = {
         'x-b3-sampled': '1',
         'x-b3-traceid': 'f047c6f208eb36ab',
         'x-b3-flags': '0',
@@ -25,30 +25,29 @@ def test_amqp_conversion():
         'x-b3-parentspanid': '0000000000000000'
     }
 
-    if isinstance(message.body, bytes):
-        memory_view = memoryview(message.body)
+    if isinstance(sent.body, bytes):
+        body = sent.body
     else:
-        memory_view = memoryview(six.b(message.body))
+        body = six.b(sent.body)
 
-    amqp = librabbitmq.Message(
-        channel=None,
-        properties=WireV1.to_amqp_properties(message),
-        delivery_info={
-            "routing_key": message.topic,
-            "consumer_tag": message.subscription_id,
-        },
-        body=memory_view,
-    )
+    amqp_message = amqp.Message(
+        channel=None, body=body, **WireV1.to_amqp_properties(sent))
 
-    message2 = WireV1.from_amqp_message(amqp)
-    assert str(message) == str(message2)
-    assert message.created_at == message2.created_at
-    assert message.reply_to == message2.reply_to
-    assert message.subscription_id == message2.subscription_id
-    assert message.content_type == message2.content_type
-    assert message.body == message2.body
-    assert message.status == message2.status
-    assert message.topic == message2.topic
-    assert message.correlation_id == message2.correlation_id
-    assert message.timeout == message2.timeout
-    assert message.metadata == message2.metadata
+    amqp_message.delivery_info = {
+        "routing_key": sent.topic,
+        "consumer_tag": sent.subscription_id,
+    }
+
+    received = WireV1.from_amqp_message(amqp_message)
+    print(sent.__str__(), received.__str__())
+    assert str(sent) == str(received)
+    assert sent.created_at == received.created_at
+    assert sent.reply_to == received.reply_to
+    assert sent.subscription_id == received.subscription_id
+    assert sent.content_type == received.content_type
+    assert sent.body == received.body
+    assert sent.status == received.status
+    assert sent.topic == received.topic
+    assert sent.correlation_id == received.correlation_id
+    assert sent.timeout == received.timeout
+    assert sent.metadata == received.metadata

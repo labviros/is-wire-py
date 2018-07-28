@@ -36,5 +36,4 @@ def test_channel():
     assert sent.correlation_id == received.correlation_id
     assert sent.timeout == received.timeout
     assert sent.metadata == received.metadata
-    # Not passing, librabbitmq issue https://github.com/celery/librabbitmq/issues/79
-    # assert sent.created_at == received.created_at
+    assert sent.created_at == received.created_at
