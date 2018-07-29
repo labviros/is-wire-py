@@ -13,6 +13,12 @@ Install the wire package using `pip` or `pipenv`:
 
 ## Usage
 
+In order to send/receive messages an amqp broker is necessary, to create one simply run:
+
+```shell
+docker run -d --rm -p 5672:5672 -p 15672:15672 rabbitmq:3.7.6-management
+```
+
 Create a channel to connect to a broker, create a subscription and subscribe to desired topics to receive messages:
 
 ```python
@@ -22,7 +28,7 @@ from is_wire.core import Channel, Subscription
 channel = Channel("amqp://guest:guest@localhost:5672")
 
 subscription = Subscription(channel)
-subscription.subscribe("MyTopic.SubTopic")
+subscription.subscribe(topic="MyTopic.SubTopic")
 
 message = channel.consume()
 print(message)
@@ -50,13 +56,13 @@ from google.protobuf.struct_pb2 import Struct
 channel = Channel("amqp://guest:guest@localhost:5672")
 
 subscription = Subscription(channel)
-subscription.subscribe("MyTopic.SubTopic")
+subscription.subscribe(topic="MyTopic.SubTopic")
 
 struct = Struct()
 struct.fields["apples"].string_value = "red"
 
 message = Message()
-message.content_type = ContentType.JSON
+message.content_type = ContentType.JSON # or ContentType.PROTOBUF
 message.pack(struct)
 
 channel.publish(message, topic="MyTopic.SubTopic")
@@ -72,12 +78,10 @@ assert struct == received_struct
 ### Tests
 
 ```shell
-  # prepare environment
-  pip install --user tox
-  docker run -d --rm -p 5672:5672 -p 15672:15672 rabbitmq:3.7.6-management
+# prepare environment
+pip install --user tox
+docker run -d --rm -p 5672:5672 -p 15672:15672 rabbitmq:3.7.6-management
 
-  # run all the tests
-  tox
+# run all the tests
+tox
 ```
-
-

@@ -38,6 +38,10 @@ class Subscription(object):
                      channel._on_message)
 
     def subscribe(self, topic):
+        """ Subscribes to the given topic.
+        Args:
+            topic (str): topic to receive messages from.
+        """
         self._channel.queue_bind(
             queue=self._name,
             exchange=self._exchange,
@@ -46,6 +50,10 @@ class Subscription(object):
         self._topics.add(topic)
 
     def unsubscribe(self, topic):
+        """ Unsubscribe from the given topic.
+        Args:
+            topic (str): topic to stop receiving messages from.
+        """
         self._channel.queue_unbind(
             queue=self._name,
             exchange=self._exchange,

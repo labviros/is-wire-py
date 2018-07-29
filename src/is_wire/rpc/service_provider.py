@@ -62,7 +62,7 @@ class ServiceProvider(object):
                 try:
                     getattr(interceptor, method)(*args)
                 except Exception:
-                    self.log.warn(
+                    self.log.error(
                         "Interceptor '{}' throwed exception:\n{}",
                         type(interceptor).__name__,
                         traceback.format_exc(),
@@ -86,6 +86,10 @@ class ServiceProvider(object):
                 why = "Expected request type '{}' but received something else"\
                     .format(request_type.DESCRIPTOR.full_name)
                 reply.status = Status(StatusCode.FAILED_PRECONDITION, why)
+            except Exception:
+                trace = traceback.format_exc()
+                self.log.error("Unexpected error\n{}", trace)
+                reply.status = Status(StatusCode.INTERNAL_ERROR, trace)
 
             run_interceptors(self._interceptors, "after_call", reply)
             return reply

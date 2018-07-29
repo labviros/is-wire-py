@@ -32,6 +32,9 @@ class Channel(object):
         self.amqp_message = message
 
     def publish(self, message, topic=None):
+        """ Publishes a message to the given topic. The topic on the message
+        is used when no topic is passed to this function. If no valid topic is
+        passed a RuntimeError is raised."""
         if not message.has_topic() and topic is None:
             raise RuntimeError("Trying to publish message without topic")
 
@@ -49,5 +52,14 @@ class Channel(object):
         )
 
     def consume(self, timeout=None):
+        """ Blocks waiting for a new message to arrive. If no timeout
+        (in seconds) is provided the function blocks forever.
+        Args:
+            timeout (float): Period in seconds to block waiting for messages.
+            If no message was received after this period a socket.timeout
+            Exception is raised.
+        Returns:
+            Message: Received message.
+        """
         self.connection.drain_events(timeout)
         return WireV1.from_amqp_message(self.amqp_message)
