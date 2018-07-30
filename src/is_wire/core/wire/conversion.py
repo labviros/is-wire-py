@@ -3,13 +3,18 @@ from .content_type import content_type_from_wire, content_type_to_wire
 from .status import Status, StatusCode
 from is_msgs import wire_pb2
 from google.protobuf import json_format
+from six import binary_type
 
 
 class WireV1(object):
     @staticmethod
     def from_amqp_message(amqp_message):
         message = Message()
-        message.body = amqp_message.body
+
+        if not isinstance(amqp_message.body, binary_type):
+            message.body = amqp_message.body.encode('latin')
+        else:
+            message.body = amqp_message.body
 
         delivery_info = amqp_message.delivery_info
         message.topic = delivery_info["routing_key"]
@@ -21,7 +26,7 @@ class WireV1(object):
                 properties["content_type"])
 
         if "correlation_id" in properties:
-            message.correlation_id = int(properties["correlation_id"])
+            message.correlation_id = int(properties["correlation_id"], 16)
 
         if "reply_to" in properties:
             message.reply_to = properties["reply_to"]
@@ -57,7 +62,8 @@ class WireV1(object):
                 message.content_type)
 
         if message.has_correlation_id():
-            properties["correlation_id"] = str(message.correlation_id)
+            properties["correlation_id"] = "{:X}".format(
+                message.correlation_id)
 
         if message.has_reply_to():
             properties["reply_to"] = message.reply_to

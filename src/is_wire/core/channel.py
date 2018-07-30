@@ -16,6 +16,7 @@ class Channel(object):
         self.connection.connect()
 
         self._channel = self.connection.channel()
+        self._channel.auto_decode = False
 
         self._exchange = "is"
         self._channel.exchange_declare(

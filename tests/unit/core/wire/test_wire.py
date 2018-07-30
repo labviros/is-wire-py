@@ -1,8 +1,7 @@
+import pytest
 from is_wire.core import Message, now, ContentType, StatusCode, Status
 from is_wire.core.wire.conversion import WireV1
-import six
 import amqp
-import pytest
 
 
 def test_amqp_conversion():
@@ -11,7 +10,7 @@ def test_amqp_conversion():
     sent.reply_to = "reply_to"
     sent.subscription_id = "subscription_id"
     sent.content_type = ContentType.JSON
-    sent.body = '{"field":"value"}'
+    sent.body = '{"field":"value"}'.encode('latin1')
     sent.topic = "MyTopic"
     sent.status = Status(
         code=StatusCode.FAILED_PRECONDITION,
@@ -25,10 +24,7 @@ def test_amqp_conversion():
         'x-b3-parentspanid': '0000000000000000'
     }
 
-    if isinstance(sent.body, bytes):
-        body = sent.body
-    else:
-        body = six.b(sent.body)
+    body = sent.body
 
     amqp_message = amqp.Message(
         channel=None, body=body, **WireV1.to_amqp_properties(sent))

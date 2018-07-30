@@ -18,16 +18,12 @@ class TextFormatPropagator(object):
 
     @classmethod
     def from_carrier(cls, carrier):
-        trace_id = carrier[
-            cls.trace_id_key] if cls.trace_id_key in carrier else None
+        if cls.trace_id_key not in carrier or \
+           cls.span_id_key not in carrier:
+            return None
 
-        span_id = carrier[
-            cls.span_id_key] if cls.span_id_key in carrier else None
-
-        # parent_span_id = carrier[
-        #     parent_span_id_key] if parent_span_id_key in carrier else None
-
-        # sampled = carrier[sampled_key] if sampled_key in carrier else None
+        trace_id = carrier[cls.trace_id_key]
+        span_id = carrier[cls.span_id_key]
 
         return SpanContext(
             trace_id=trace_id,

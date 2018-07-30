@@ -195,8 +195,8 @@ class Message(object):
 
     @body.setter
     def body(self, value):
-        assert_type(value, [binary_type] + list(string_types), "body")
-        self._body = six.b(value) if isinstance(value, string_types) else value
+        assert_type(value, binary_type, "body")
+        self._body = value
 
     def has_body(self):
         """ Returns: True if the property body of the message is set,
@@ -305,8 +305,8 @@ class Message(object):
             trace_id=span.context_tracer.trace_id,
             span_id=span.span_id,
         )
-        self.metadata = TextFormatPropagator.to_carrier(span_context,
-                                                        self.metadata)
+        self.metadata = TextFormatPropagator.to_carrier(
+            span_context, self.metadata)
 
     # pack / unpack
 
@@ -321,10 +321,17 @@ class Message(object):
             self.content_type = ContentType.PROTOBUF
 
         if self.content_type == ContentType.PROTOBUF:
+            # SerializeToString returns py2: str, py3: bytes
             self.body = obj.SerializeToString()
+
         elif self.content_type == ContentType.JSON:
-            self.body = json_format.MessageToJson(
+            # MessageToJson returns py2: str, py3: str
+            packed = json_format.MessageToJson(
                 obj, indent=0, including_default_value_fields=True)
+            if not isinstance(packed, binary_type):
+                self.body = packed.encode('latin')
+            else:
+                self.body = packed
         else:
             raise NotImplementedError(
                 "Serialization to '{}' type not implemented".format(
@@ -344,8 +351,10 @@ class Message(object):
 
         if self.content_type == ContentType.PROTOBUF:
             obj.ParseFromString(self.body)
+
         elif self.content_type == ContentType.JSON:
             obj = json_format.Parse(self.body, obj)
+
         else:
             raise NotImplementedError(
                 "Deserialization from '{}' type not implemented".format(

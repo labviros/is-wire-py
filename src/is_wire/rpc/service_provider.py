@@ -1,6 +1,5 @@
 from ..core import Channel, Subscription, Status, StatusCode, Logger
 from ..core.utils import assert_type
-from .interceptor import Interceptor
 from .context import Context
 import traceback
 import six
@@ -14,7 +13,8 @@ class ServiceProvider(object):
         assert_type(channel, Channel, "channel")
         self._channel = channel
         self._services = {}
-        self._interceptors = []
+        self._interceptors_before = []
+        self._interceptors_after = []
 
     def delegate(self, topic, function, request_type, reply_type):
         """ Bind a function to a particular topic, so everytime a message is
@@ -26,10 +26,13 @@ class ServiceProvider(object):
         self._services[subscription.id] = wrapped
 
     def add_interceptor(self, interceptor):
-        if not issubclass(type(interceptor), Interceptor):
-            raise TypeError(
-                "Interceptors must derive from the Interceptor class")
-        self._interceptors.append(interceptor)
+        itype = type(interceptor)
+        if not hasattr(itype, "before_call") and \
+           not hasattr(itype, "after_call"):
+            raise TypeError("Interceptors must implement the Interceptor"
+                            "concept or derive from the Interceptor class")
+        self._interceptors_before.append(interceptor.before_call)
+        self._interceptors_after.append(interceptor.after_call)
 
     def serve(self, message):
         """ Attempts to serve message """
@@ -49,7 +52,9 @@ class ServiceProvider(object):
     def wrap(self, function, request_type, reply_type):
         def safe_call(*args):
             try:
-                return function(*args)
+                result = function(*args)
+                assert_type(result, (Status, reply_type), "function result")
+                return result
             except Exception:
                 return Status(
                     code=StatusCode.INTERNAL_ERROR,
@@ -57,31 +62,27 @@ class ServiceProvider(object):
                         traceback.format_exc()),
                 )
 
-        def run_interceptors(interceptors, method, *args):
+        def run_interceptors(interceptors, *args):
             for interceptor in interceptors:
                 try:
-                    getattr(interceptor, method)(*args)
+                    interceptor(*args)
                 except Exception:
-                    self.log.error(
-                        "Interceptor '{}' throwed exception:\n{}",
-                        type(interceptor).__name__,
-                        traceback.format_exc(),
-                    )
+                    trace = traceback.format_exc()
+                    self.log.error("Interceptor throwed exception:\n{}", trace)
 
         def wrapper(request):
-            run_interceptors(self._interceptors, "before_call", request)
-
             reply = request.create_reply()
+            context = Context(request, reply)
+
+            run_interceptors(self._interceptors_before, context)
             try:
                 arg = request.unpack(request_type)
-                context = Context()
                 result = safe_call(arg, context)
-                if not isinstance(result, Status):
-                    assert_type(result, reply_type, "reply")
+                if isinstance(result, Status):
+                    reply.status = result
+                else:
                     reply.pack(result)
                     reply.status = Status(code=StatusCode.OK)
-                else:
-                    reply.status = result
             except ParseError:
                 why = "Expected request type '{}' but received something else"\
                     .format(request_type.DESCRIPTOR.full_name)
@@ -91,7 +92,7 @@ class ServiceProvider(object):
                 self.log.error("Unexpected error\n{}", trace)
                 reply.status = Status(StatusCode.INTERNAL_ERROR, trace)
 
-            run_interceptors(self._interceptors, "after_call", reply)
+            run_interceptors(self._interceptors_after, context)
             return reply
 
         return wrapper

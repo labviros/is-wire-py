@@ -1,6 +1,5 @@
 import pytest
 from is_wire.core.tracing.propagation import TextFormatPropagator
-
 from is_wire.core import Message, Channel, Subscription, Tracer
 
 
@@ -56,7 +55,7 @@ def test_propagation():
     with tracer.span(name="span_name") as span:
         span_id = span.span_id
         message = Message()
-        message.body = "body"
+        message.body = "body".encode('latin1')
         message.inject_tracing(span)
         channel.publish(topic=topic, message=message)
 

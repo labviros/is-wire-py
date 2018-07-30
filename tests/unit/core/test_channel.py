@@ -1,7 +1,6 @@
-from is_wire.core import Channel, Message, Subscription, ContentType, now
-from google.protobuf.struct_pb2 import Struct
-
 import pytest
+from is_wire.core import Channel, Message, Subscription, now
+from google.protobuf.struct_pb2 import Struct
 
 
 def test_channel():
@@ -11,7 +10,7 @@ def test_channel():
     subscription.subscribe("MyTopic.Sub.Sub")
 
     struct = Struct()
-    struct.fields["key"].number_value = 1021892179281291921898928198
+    struct.fields["value"].number_value = 666.0
 
     sent = Message(struct)
     sent.reply_to = subscription
@@ -20,12 +19,7 @@ def test_channel():
     sent.topic = "MyTopic.Sub.Sub"
 
     channel.publish(message=sent)
-
     received = channel.consume(timeout=1.0)
-    struct2 = received.unpack(Struct)
-
-    assert str(struct) == str(struct2)
-    assert struct == struct2
 
     assert sent.reply_to == received.reply_to
     assert sent.subscription_id == received.subscription_id
@@ -37,3 +31,26 @@ def test_channel():
     assert sent.timeout == received.timeout
     assert sent.metadata == received.metadata
     assert sent.created_at == received.created_at
+    assert str(sent) == str(received)
+
+    struct2 = received.unpack(Struct)
+    assert str(struct) == str(struct2)
+    assert struct == struct2
+
+
+def test_body():
+    channel = Channel()
+
+    subscription = Subscription(channel)
+    subscription.subscribe("MyTopic.Sub.Sub")
+
+    sent = Message()
+    sent.reply_to = subscription
+    sent.topic = "MyTopic.Sub.Sub"
+    sent.body = bytes(bytearray(range(256)))
+
+    channel.publish(message=sent)
+    received = channel.consume(timeout=1.0)
+
+    assert repr(sent.body) == repr(received.body)
+    assert sent.body == received.body
