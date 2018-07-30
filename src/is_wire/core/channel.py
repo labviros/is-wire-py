@@ -8,8 +8,7 @@ class Channel(object):
         url = urllib.parse.urlparse(uri)
 
         self.connection = amqp.Connection(
-            host=url.hostname or "localhost",
-            port=url.port or 5672,
+            host="{}:{}".format(url.hostname, url.port or 5672),
             userid=url.username or "guest",
             password=url.password or "guest",
         )
@@ -57,10 +56,13 @@ class Channel(object):
         (in seconds) is provided the function blocks forever.
         Args:
             timeout (float): Period in seconds to block waiting for messages.
+            Must be a positive number. If 0 is passed the call is non-blocking.
             If no message was received after this period a socket.timeout
             Exception is raised.
         Returns:
             Message: Received message.
         """
+        if timeout is not None:
+            assert timeout >= 0.0
         self.connection.drain_events(timeout)
         return WireV1.from_amqp_message(self.amqp_message)

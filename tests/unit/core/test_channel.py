@@ -1,6 +1,7 @@
 import pytest
 from is_wire.core import Channel, Message, Subscription, now
 from google.protobuf.struct_pb2 import Struct
+import socket
 
 
 def test_channel():
@@ -54,3 +55,11 @@ def test_body():
 
     assert repr(sent.body) == repr(received.body)
     assert sent.body == received.body
+
+
+def test_negative_timeout():
+    channel = Channel()
+    with pytest.raises(AssertionError):
+        channel.consume(timeout=-1e-10)
+    with pytest.raises(socket.timeout):
+        channel.consume(timeout=0)

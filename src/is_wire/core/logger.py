@@ -1,5 +1,6 @@
 from colorlog import ColoredFormatter, StreamHandler, getLogger
 import logging
+from .utils import assert_type
 
 
 class Logger:
@@ -10,8 +11,10 @@ class Logger:
     CRITICAL = logging.CRITICAL
 
     def __init__(self, name, level=logging.DEBUG):
-        style = "%(log_color)s[%(levelname)-8s][%(thread)d][%(asctime)s]" \
-                "[%(name)s] %(message)s"
+        assert_type(name, str, "name")
+
+        style = "%(log_color)s[%(levelname)-.1s][%(threadName)s]" \
+                "[%(asctime)s][%(name)s] %(message)s"
 
         formatter = ColoredFormatter(
             style,
@@ -22,16 +25,17 @@ class Logger:
                 'INFO': 'white',
                 'WARNING': 'yellow',
                 'ERROR': 'red',
-                'CRITICAL': 'red,bg_white',
+                'CRITICAL': 'white,bg_red',
             },
             secondary_log_colors={},
             style='%')
 
-        handler = StreamHandler()
-        handler.setFormatter(formatter)
         self.logger = getLogger(name)
-        self.logger.addHandler(handler)
-        self.set_level(level)
+        if len(self.logger.handlers) == 0 and name:
+            handler = StreamHandler()
+            handler.setFormatter(formatter)
+            self.logger.addHandler(handler)
+            self.set_level(level)
 
     def set_level(self, level):
         self.logger.setLevel(level)
