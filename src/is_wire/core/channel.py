@@ -8,7 +8,7 @@ class Channel(object):
         url = urllib.parse.urlparse(uri)
 
         self.connection = amqp.Connection(
-            host="{}:{}".format(url.hostname, url.port or 5672),
+            host="{}:{}".format(url.hostname or "localhost", url.port or 5672),
             userid=url.username or "guest",
             password=url.password or "guest",
         )
@@ -35,7 +35,7 @@ class Channel(object):
         """ Publishes a message to the given topic. The topic on the message
         is used when no topic is passed to this function. If no valid topic is
         passed a RuntimeError is raised."""
-        if not message.has_topic() and topic is None:
+        if not message.has_topic() and not topic:
             raise RuntimeError("Trying to publish message without topic")
 
         amqp_message = amqp.Message(
@@ -66,3 +66,6 @@ class Channel(object):
             assert timeout >= 0.0
         self.connection.drain_events(timeout)
         return WireV1.from_amqp_message(self.amqp_message)
+
+    def close(self):
+        self.connection.close()

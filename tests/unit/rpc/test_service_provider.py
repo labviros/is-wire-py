@@ -1,3 +1,4 @@
+import pytest
 from is_wire.rpc import ServiceProvider, LogInterceptor
 from is_wire.core import Channel, Status, StatusCode, Subscription, Message
 from google.protobuf.struct_pb2 import Struct
@@ -49,3 +50,34 @@ def test_rpc():
     reply = request_serve_consume(10.0)
     assert reply.status.ok() is False
     assert reply.status.code == StatusCode.INTERNAL_ERROR
+
+    channel.close()
+
+
+def test_serve():
+    channel = Channel()
+    service = ServiceProvider(channel)
+    topic = "MyService"
+    service.delegate(topic, my_service, Struct, Int64Value)
+
+    subscription = Subscription(channel)
+
+    sent = Message(content="body".encode('latin'))
+    channel.publish(sent, topic=subscription.name)
+
+    recv = channel.consume(timeout=1.0)
+    assert recv.subscription_id == subscription.id
+
+    # Trying to serve a message from another subscription should fail
+    assert service.should_serve(recv) is False
+    with pytest.raises(RuntimeError):
+        service.serve(recv)
+
+    sent.topic = topic
+    channel.publish(message=sent)
+    recv = channel.consume(timeout=1.0)
+
+    assert service.should_serve(recv) is True
+    service.serve(recv)
+
+    channel.close()

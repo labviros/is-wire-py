@@ -6,7 +6,6 @@ import socket
 
 def test_channel():
     channel = Channel()
-
     subscription = Subscription(channel)
     subscription.subscribe("MyTopic.Sub.Sub")
 
@@ -38,6 +37,8 @@ def test_channel():
     assert str(struct) == str(struct2)
     assert struct == struct2
 
+    channel.close()
+
 
 def test_body():
     channel = Channel()
@@ -56,6 +57,8 @@ def test_body():
     assert repr(sent.body) == repr(received.body)
     assert sent.body == received.body
 
+    channel.close()
+
 
 def test_negative_timeout():
     channel = Channel()
@@ -63,3 +66,42 @@ def test_negative_timeout():
         channel.consume(timeout=-1e-10)
     with pytest.raises(socket.timeout):
         channel.consume(timeout=0)
+    channel.close()
+
+
+def test_empty_topic():
+    channel = Channel()
+    message = Message(content="body".encode('latin'))
+
+    with pytest.raises(RuntimeError):
+        channel.publish(message)
+
+    with pytest.raises(RuntimeError):
+        channel.publish(message, topic="")
+
+    subscription = Subscription(channel)
+    channel.publish(message, topic=subscription.name)
+    recv = channel.consume(timeout=1.0)
+    assert recv.body == message.body
+
+    message.topic = subscription.name
+    channel.publish(message)
+    recv = channel.consume(timeout=1.0)
+    assert recv.body == message.body
+    channel.close()
+
+
+def test_multi_subscription():
+    channel = Channel()
+    message = Message()
+    subscription1 = Subscription(channel)
+    subscription2 = Subscription(channel)
+
+    channel.publish(message, topic=subscription1.name)
+    recv = channel.consume(timeout=1.0)
+    assert recv.subscription_id == subscription1.name
+
+    channel.publish(message, topic=subscription2.name)
+    recv = channel.consume(timeout=1.0)
+    assert recv.subscription_id == subscription2.name
+    channel.close()

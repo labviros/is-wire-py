@@ -114,3 +114,14 @@ def test_create_reply_empty_request():
     assert reply.topic == request.reply_to
     assert reply.correlation_id == request.correlation_id
     assert reply.content_type == request.content_type
+
+
+def test_constructor():
+    body = "body".encode('latin')
+    reply_to = "reply_to"
+    ctype = ContentType.JSON
+    msg = Message(content=body, reply_to=reply_to, content_type=ctype)
+
+    assert msg.body == body
+    assert msg.reply_to == reply_to
+    assert msg.content_type == ctype

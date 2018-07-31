@@ -1,7 +1,6 @@
 from datetime import datetime
 from google.protobuf import json_format
 from six import integer_types, string_types, binary_type
-import six
 
 from .utils import now, assert_type, new_uuid
 from .subscription import Subscription
@@ -42,8 +41,8 @@ class Message(object):
             self.content_type = content_type
 
         if content is not None:
-            if isinstance(content, six.string_types):
-                self.content = content
+            if isinstance(content, binary_type):
+                self.body = content
             else:
                 self.pack(content)
 
@@ -62,7 +61,7 @@ class Message(object):
         pretty += "  metadata = {}\n".format(self.metadata)
         pretty += "  content_type = {}\n".format(self.content_type)
         pretty += "  body[{}] = {} \n".format(len(self.body), repr(self.body))
-        pretty += '}\"'
+        pretty += "}"
         return pretty
 
     def short_string(self):
@@ -120,7 +119,7 @@ class Message(object):
     def has_topic(self):
         """ Returns: True if the property topic of the message is set,
          False otherwise """
-        return self._topic is not None and len(self._topic) != 0
+        return bool(self._topic)
 
     # reply_to
 
@@ -149,7 +148,7 @@ class Message(object):
     def has_reply_to(self):
         """ Returns: True if the property reply_to of the message is set,
          False otherwise """
-        return self._reply_to is not None and len(self._reply_to) != 0
+        return bool(self._reply_to)
 
     # subscription_id
 
@@ -166,8 +165,7 @@ class Message(object):
     def has_subscription_id(self):
         """ Returns: True if the property subscription_id of the message is set,
          False otherwise """
-        return self._subscription_id is not None and len(
-            self._subscription_id) != 0
+        return bool(self._subscription_id)
 
     # correlation_id
 
@@ -201,7 +199,7 @@ class Message(object):
     def has_body(self):
         """ Returns: True if the property body of the message is set,
          False otherwise """
-        return self._body is not None and len(self._body) != 0
+        return bool(self._body)
 
     # content_type
 

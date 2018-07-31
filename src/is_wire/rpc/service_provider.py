@@ -26,6 +26,12 @@ class ServiceProvider(object):
         self._services[subscription.id] = wrapped
 
     def add_interceptor(self, interceptor):
+        """ Add an interceptor to the service provider. Interceptors provide
+        a way to call functions before and after the actual service handler is
+        called. For that the interceptor object passed must implement the
+        Interceptor concept, that is, to have a before_call and after_call
+        methods.
+        """
         itype = type(interceptor)
         if not hasattr(itype, "before_call") and \
            not hasattr(itype, "after_call"):
@@ -34,14 +40,21 @@ class ServiceProvider(object):
         self._interceptors_before.append(interceptor.before_call)
         self._interceptors_after.append(interceptor.after_call)
 
+    def should_serve(self, message):
+        return message.subscription_id in self._services
+
     def serve(self, message):
-        """ Attempts to serve message """
-        if message.subscription_id in self._services:
+        """ Attempts to serve the message. Raises runtime error if message
+        cannot be served. Users can check if the message can be served by
+        calling the should_serve method """
+        try:
             reply = self._services[message.subscription_id](message)
             if reply.has_topic():
                 self._channel.publish(reply)
-        else:
-            self.log.debug("Ignoring request\n{}", message.short_string())
+        except KeyError as error:
+            why = "Cannot serve message with subscription_id='{}'".format(
+                message.subscription_id)
+            six.raise_from(RuntimeError(why), error)
 
     def run(self):
         """ Blocks the current thread listening for requests """
