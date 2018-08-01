@@ -12,7 +12,7 @@ opencensus.trace.span_context._INVALID_TRACE_ID = '0' * 16
 class Tracer(object):
     def __init__(self, exporter, span_context=None):
         if span_context is None:
-            span_context = SpanContext(trace_id=format(new_uuid(), 'x'))
+            span_context = SpanContext(trace_id=format(new_uuid(), '016x'))
 
         self.tracer = tracer.Tracer(
             exporter=exporter,
