@@ -1,6 +1,9 @@
 
-# Wire - Pub/Sub middleware for the *is* architecture (python implementation)
+# Wire
 
+Pub/Sub middleware for the *is* architecture (python implementation)
+
+![PyPI](https://img.shields.io/pypi/v/is-wire.svg?label=is-wire&style=for-the-badge)
 
 ## Installation 
 
