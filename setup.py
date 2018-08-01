@@ -2,13 +2,21 @@ from setuptools import setup, find_packages
 
 setup(
     name='is_wire',
-    version='1.0.5.1',
+    version='1.1.0',
     description='',
     url='http://github.com/labviros/is-wire-py',
     author='labviros',
     license='MIT',
-    packages=[ 'is_wire', 'is_wire.core', 'is_wire.rpc' ],
+    packages=find_packages('src'),
+    package_dir={'': 'src'},
     zip_safe=False,
-    install_requires=['pika==0.12.0', 'termcolor', 'is-msgs', 'is-opencensus']
+    install_requires=[
+        'colorlog==3.1.4',
+        'amqp==2.3.2',
+        'enum34==1.1.6',
+        'protobuf==3.6.0',
+        'is-msgs',
+        'is-opencensus==0.1.5',
+    ]
     # change 'is-opencensus' to 'opencensus' when pull request accepted
 )
