@@ -81,3 +81,12 @@ def test_serve():
     service.serve(recv)
 
     channel.close()
+
+
+def test_delegate():
+    channel = Channel()
+    service = ServiceProvider(channel)
+    service.delegate("MyService", my_service, Struct, Int64Value)
+    with pytest.raises(RuntimeError):
+        service.delegate("MyService", my_service, Struct, Int64Value)
+    channel.close()

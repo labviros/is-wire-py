@@ -15,13 +15,19 @@ class ServiceProvider(object):
         self._services = {}
         self._interceptors_before = []
         self._interceptors_after = []
+        self._subscriptions = []
 
     def delegate(self, topic, function, request_type, reply_type):
         """ Bind a function to a particular topic, so everytime a message is
             received in this topic the function will be called """
         assert_type(topic, six.string_types, "topic")
+        if any(topic == s.name for s in self._subscriptions):
+            raise RuntimeError(
+                "Service on topic '{}' was already delegated".format(topic))
+
         self.log.debug("New service registered '{}'", topic)
         subscription = Subscription(self._channel, name=topic)
+        self._subscriptions.append(subscription)
         wrapped = self.wrap(function, request_type, reply_type)
         self._services[subscription.id] = wrapped
 
