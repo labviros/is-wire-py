@@ -1,9 +1,17 @@
 sudo: required
 services:
-  - rabbitmq
+- rabbitmq
 language: python
 python:
-  - "2.7"
-  - "3.5"
+- '2.7'
+- '3.5'
 install: pip install tox-travis
 script: tox
+deploy:
+  provider: pypi
+  on:
+    tags: true
+  user:
+    secure: A+KB3WjmgL8bva/TmNgJn3ZjTRa5K2NX9SMGCtcoIhIlUG6ZJ1DQdwrcFI2ei5RxLVJUZdAK/BypSvvcBEAYvJJvoPoVWL/eybygQU591H7xsuTWcKNIqsTtThbFWhBqOyXDHTnejGewdNqaF4hgiYCJ1fFJpdoPwLhG1mDptykRGQiIHZiqt0KWSCEZRjOFU2thdBRTzZtLh7UkZv0QKyq/nEbSZ/iwRXcYJJZKDgcm1yY9WitNaEJFlz9SKJfrEs3K9YKDJ5zZ8p3xXuls0vSX8hEMmtOcitDvxxUvNGu6EvaD07ln15LmTjjcb4DzJ0+toLfkFtG7/qMQ3/cbx4xOYOZrriVb2V9GpXwFziBfBoqcfawV1IbutPkx4rQqZpWY0CEAdIaKKsGJgvPfWajts5gS5GoQtFv2NQnEsbrqAgGU04jKIMl0lECN/r4bNA9cs7RmpUZ2EccKxvZ6E2GQWJsu29r0EdotnxvgMZ1ezzie0LxDLyK8NlB6GaNISYumMruOBVN4qnSZQilSaH46UOfLYFinVIYbN/ANY6Ec6o33HH+reYYNLrQ7QlF6Q9Tpkbev6NA4t+uCBgdgfUmhPtIRVm5JLue+vvV2ZhugPRGGRnOYCW30Q4ROPAhHgfHHR54/ULvAWR6L7LAEFL1wJsnbMc7Drao25qKNGvM=
+  password:
+    secure: gNJY4lb95rJVU1cnE+Gd+KLe/TY1QQryHkPicIwvmzmIbmvEkmq00LCHn1PPzaxm5uFfyzrs9qAJ8lSPfQRMP/XLlVppA//5Cw3zk0deKm3dEEmZMr9wJ+8Z4xsWG6TN3dlgf/zrv2/vEmPAM7aBu3LyFc0k0P+jJLHfralLj+DoJm28f0mDWLYmP3nCBal0WK/Q64VlC2CiYE7WXX2L0w6PBUp5Z0Bofr+bNGpttk8Na1I8Sxw4rL7Z8OnkduPLRhKj20sHy/dxTw9AtYya6kde+eiPvke3nDDfsxtwKV+tF+6OhOfaweVB3eN3nedB7GqMLXW71CYHuRF+rAoRczCGCCDA9RgV4MKQGQaq6YtjNWt2l+0s2U0XlbZ/2EDx0O7dGucR7DYDB44iGyPNWynfU4w29+McztOUJCalBfO3sR7mnT21Ay2Ne/sm1L0+/5CpJf/LO1hLUuqE4kL1zzJ4+JSi3bMcwHcY74T5rJUx0pGOTki9m7utc+oPwdXGGJ2FYp2QW8Ws5jsFIY4HOLvTfs+S6La61OhC508I+XGemO5Cm31NOvfbL3NbNdDVo0zFA8k469k89eVuPU6gvwngQCBlBbKzXIVoVtQw93GuE29quHYZWpr+t8NXrLfYOlc4qdqj+h661OxMj2/1vBfA6wtvF6aRufKXNl07+sM=
