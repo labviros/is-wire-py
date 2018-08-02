@@ -40,7 +40,8 @@ def test_channel():
     channel.close()
 
 
-def test_body():
+@pytest.mark.parametrize("size", [0, 1e4])
+def test_body(size):
     channel = Channel()
 
     subscription = Subscription(channel)
@@ -49,7 +50,7 @@ def test_body():
     sent = Message()
     sent.reply_to = subscription
     sent.topic = "MyTopic.Sub.Sub"
-    sent.body = bytes(bytearray(range(256)))
+    sent.body = bytes(bytearray(range(256)) * int(size))
 
     channel.publish(message=sent)
     received = channel.consume(timeout=1.0)
