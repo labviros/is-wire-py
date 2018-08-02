@@ -64,7 +64,10 @@ class Channel(object):
         """
         if timeout is not None:
             assert timeout >= 0.0
-        self.connection.drain_events(timeout)
+
+        self.amqp_message = None
+        while self.amqp_message is None:
+            self.connection.drain_events(timeout)
         return WireV1.from_amqp_message(self.amqp_message)
 
     def close(self):

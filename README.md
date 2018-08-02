@@ -41,7 +41,7 @@ subscription = Subscription(channel)
 subscription.subscribe(topic="MyTopic.SubTopic")
 # ... subscription.subscribe(topic="Other.Topic")
 
-# Blocks forever waiting for messages
+# Blocks forever waiting for one message from any subscription
 message = channel.consume()
 print(message)
 ```
