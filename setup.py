@@ -15,7 +15,8 @@ setup(
         'amqp==2.3.2',
         'enum34==1.1.6',
         'protobuf==3.6.0',
-        'is-opencensus>=0.1.5.2',
+        'is-opencensus>=0.1.5.3',
+        'prometheus-client==0.3.1',
     ]
     # change 'is-opencensus' to 'opencensus' when pull request accepted
 )

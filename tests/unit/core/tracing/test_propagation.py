@@ -19,7 +19,7 @@ def test_propagator():
 
 
 def test_injection():
-    tracer = Tracer(exporter=None)
+    tracer = Tracer()
     with tracer.span(name="span_name") as span:
         message = Message()
         message.inject_tracing(span)
@@ -51,7 +51,7 @@ def test_propagation():
     subscription = Subscription(channel)
     subscription.subscribe(topic)
 
-    tracer = Tracer(exporter=None)
+    tracer = Tracer()
     with tracer.span(name="span_name") as span:
         span_id = span.span_id
         message = Message()
