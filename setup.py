@@ -15,8 +15,7 @@ setup(
         'amqp==2.3.2',
         'enum34==1.1.6',
         'protobuf==3.6.0',
-        'is-msgs',
-        'is-opencensus>=0.1.5',
+        'is-opencensus>=0.1.5.2',
     ]
     # change 'is-opencensus' to 'opencensus' when pull request accepted
 )

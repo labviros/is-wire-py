@@ -1,5 +1,5 @@
-from is_msgs import wire_pb2
 from enum import Enum
+from . import wire_pb2
 from ..utils import assert_type
 
 
