@@ -21,7 +21,7 @@ class Channel(object):
         self._channel.exchange_declare(
             exchange=self._exchange,
             type="topic",
-            durable=True,
+            durable=False,
             auto_delete=False,
         )
 
