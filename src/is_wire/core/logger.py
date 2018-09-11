@@ -47,7 +47,7 @@ class Logger:
         self.logger.info(formatter.format(*args))
 
     def warn(self, formatter, *args):
-        self.logger.warn(formatter.format(*args))
+        self.logger.warning(formatter.format(*args))
 
     def error(self, formatter, *args):
         self.logger.error(formatter.format(*args))
