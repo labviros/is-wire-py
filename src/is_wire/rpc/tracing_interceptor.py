@@ -27,5 +27,11 @@ class TracingInterceptor(Interceptor):
         self.span = self.tracer.start_span(name=self.namer(context))
 
     def after_call(self, context):
+        status = context.reply.status
+        if not status.ok():
+            self.span.add_attribute("reply_to", context.request.reply_to)
+            self.span.add_attribute("status_code", status.code.name)
+            self.span.add_attribute("status_why", status.why)
+
         context.reply.inject_tracing(self.span)
         self.tracer.end_span()

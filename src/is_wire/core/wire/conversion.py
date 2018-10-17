@@ -1,7 +1,7 @@
 from ..message import Message
 from .content_type import content_type_from_wire, content_type_to_wire
 from .status import Status, StatusCode
-from is_msgs import wire_pb2
+from . import wire_pb2
 from google.protobuf import json_format
 from six import binary_type
 
