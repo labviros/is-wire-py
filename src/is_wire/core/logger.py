@@ -1,4 +1,5 @@
 from colorlog import ColoredFormatter, StreamHandler, getLogger
+from sys import exit
 import logging
 from .utils import assert_type
 
@@ -54,3 +55,4 @@ class Logger:
 
     def critical(self, formatter, *args):
         self.logger.critical(formatter.format(*args))
+        exit(-1)
