@@ -54,13 +54,15 @@ class ServiceProvider(object):
         cannot be served. Users can check if the message can be served by
         calling the should_serve method """
         try:
-            reply = self._services[message.subscription_id](message)
-            if reply.has_topic():
-                self._channel.publish(reply)
+            service = self._services[message.subscription_id]
         except KeyError as error:
             why = "Cannot serve message with subscription_id='{}'".format(
                 message.subscription_id)
             six.raise_from(RuntimeError(why), error)
+
+        reply, timeouted = service(message)
+        if reply.has_topic() and not timeouted:
+            self._channel.publish(reply)
 
     def run(self):
         """ Blocks the current thread listening for requests """
@@ -94,24 +96,31 @@ class ServiceProvider(object):
             context = Context(request, reply)
 
             run_interceptors(self._interceptors_before, context)
-            try:
-                arg = request.unpack(request_type)
-                result = safe_call(arg, context)
-                if isinstance(result, Status):
-                    reply.status = result
-                else:
-                    reply.pack(result)
-                    reply.status = Status(code=StatusCode.OK)
-            except ParseError:
-                why = "Expected request type '{}' but received something else"\
-                    .format(request_type.DESCRIPTOR.full_name)
-                reply.status = Status(StatusCode.FAILED_PRECONDITION, why)
-            except Exception:
-                trace = traceback.format_exc()
-                self.log.error("Unexpected error\n{}", trace)
-                reply.status = Status(StatusCode.INTERNAL_ERROR, trace)
+
+            if not request.deadline_exceeded():
+                try:
+                    arg = request.unpack(request_type)
+                    result = safe_call(arg, context)
+                    if isinstance(result, Status):
+                        reply.status = result
+                    else:
+                        reply.pack(result)
+                        reply.status = Status(code=StatusCode.OK)
+                except ParseError:
+                    why = "Expected request type '{}' but received something else"\
+                        .format(request_type.DESCRIPTOR.full_name)
+                    reply.status = Status(StatusCode.FAILED_PRECONDITION, why)
+                except Exception:
+                    trace = traceback.format_exc()
+                    self.log.error("Unexpected error\n{}", trace)
+                    reply.status = Status(StatusCode.INTERNAL_ERROR, trace)
+
+            timeouted = request.deadline_exceeded()
+            if timeouted:
+                reply.status = Status(StatusCode.DEADLINE_EXCEEDED)
 
             run_interceptors(self._interceptors_after, context)
-            return reply
+
+            return reply, timeouted
 
         return wrapper
