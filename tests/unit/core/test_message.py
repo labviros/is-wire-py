@@ -91,6 +91,20 @@ def test_pack_unpack():
     assert str(struct) == str(unpacked)
     assert struct == unpacked
 
+    # test pack/unpack for dict object with default serializtion as JSON
+    dictionary = {"key": 0.1233444444, "hodor": "hold the door", "default": 0}
+    message = Message(content=dictionary)
+    assert message.content_type == ContentType.JSON
+    unpacked = message.unpack()
+    assert dictionary == unpacked
+
+    # test pack/unpack for dict object with protobuf content-type
+    message = Message()
+    message.content_type = ContentType.PROTOBUF
+    message.pack(dictionary)
+    unpacked = message.unpack()
+    assert dictionary == unpacked
+
 
 def test_create_reply():
     request = Message()
