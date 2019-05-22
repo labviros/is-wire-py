@@ -1,5 +1,5 @@
-import os
 import uuid
+from platform import uname
 from datetime import datetime
 
 
@@ -8,7 +8,7 @@ def new_uuid():
 
 
 def consumer_id():
-    return '{}/{:X}'.format(os.uname()[1], new_uuid())
+    return '{}/{:X}'.format(uname()[1], new_uuid())
 
 
 def now():
