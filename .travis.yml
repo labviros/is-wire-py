@@ -19,9 +19,11 @@ matrix:
       language: sh # 'language: python' is an error on Travis CI Windows
       before_install: 
         - choco install python --version 3.5.4
-        - travis_wait 20 choco install rabbitmq --ignoredependencies -y # currently rabbitmq service isn't supported on Travis CI Windows
         - python -m pip install --upgrade pip
-      env: TOXENV=py35 PATH=/c/Python35:/c/Python35/Scripts:$PATH
+      env: 
+        - TOXENV=py35
+        - PATH=/c/Python35:/c/Python35/Scripts:$PATH
+        - secure: HwqK7WxcO+lAt8Al6AmCsprjLv5FQA0QFOKH2qpEz+DSg3oKwrjCFiJ7LILGTTAx3Al5eCGqM7egdZV0T52OfycGAtWtC8LKBTZmg0OLRPcYoT1U4T4othapxOQgVgAT8ase3j0VmVnbNKGud+2gSgFCAdYtClXZ4NZkWO5BwH20rFT7UJsvYa4l2zmpK3/buVpUrZqrASPWgaJGSFD5T85OXh3RAYD4QsiLQ8Q92qI6/lx/8Tsj+b0t5LEevXk+D4IEQaedij5YiQQ+S0hlGxDtTs4trkoxj+M7mtUwn6GPcgjBQtXFjB6vnN1bgYl7hHlQc5BWm5L20MJOOE++SsmX2WL156slWCkTjbYAXRt1ogmFPCqEkynC8fNfqJ0k+7SzECQzbWgo70dnnsELxws1km4cHYjWVJocqKpOuLRMlexIB0+5Pg7zaetzaMTmzu3tEb0Y1eNjvmS/mTPBNBcnXaeFj0L7gi2dZceUwPdF9usKXZZuz2JgsAwzFl+3mwjI8jLvwWpJzWe27fyKTVL56yeQcNQGgnYJJ626049o5MORO/LbVW4F6Fpnhl1UvqMEJLJ6Ts/wlR/pXg9LoVBapPyVYrqnxHi5Hlzk9COMVDo+LYh+Xdag532UbKkh9x+MfGFn+rUeL9kZJyGCPzD30xY1JvrfQ8ndxqIdZ1o=
 
 install: pip install tox-travis
 script: tox
