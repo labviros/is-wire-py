@@ -14,19 +14,12 @@ matrix:
       python: 3.5
       env: TOXENV=py35
 
-    - name: "Python 2.7 on Windows"
-      os: windows 
-      language: sh       # 'language: python' is an error on Travis CI Windows
-      before_install: 
-        - choco install python2
-        - python -m pip install --upgrade pip
-      env: TOXENV=py27 PATH=/c/Python27:/c/Python27/Scripts:$PATH
-
     - name: "Python 3.5 on Windows"
       os: windows 
-      language: sh       # 'language: python' is an error on Travis CI Windows
+      language: sh # 'language: python' is an error on Travis CI Windows
       before_install: 
         - choco install python --version 3.5.4
+        - choco install rabbitmq --ignoredependencies -y # currently rabbitmq service isn't supported on Travis CI Windows
         - python -m pip install --upgrade pip
       env: TOXENV=py35 PATH=/c/Python35:/c/Python35/Scripts:$PATH
 
