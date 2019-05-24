@@ -1,7 +1,13 @@
-# Adapted from pika's repository: https://github.com/pika/pika and from https://github.com/ionelmc/python-fields/
+# Adapted from pika's repository: https://github.com/pika/pika and from https://github.com/ogrisel/python-appveyor-demo/
 
 # Windows build and test of Pika
 environment:
+  global:
+    # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
+    # /E:ON and /V:ON options are not enabled in the batch script intepreter
+    # See: http://stackoverflow.com/a/13751649/163740
+    CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\appveyor\\run_with_env.cmd"
+
   erlang_download_url: "http://erlang.org/download/otp_win64_19.3.exe"
   erlang_exe_path: "C:\\Users\\appveyor\\erlang_19.3.exe"
   erlang_home_dir: "C:\\Users\\appveyor\\erlang"
@@ -10,9 +16,6 @@ environment:
   rabbitmq_version: 3.7.4
   rabbitmq_installer_download_url: "https://github.com/rabbitmq/rabbitmq-server/releases/download/v3.7.4/rabbitmq-server-3.7.4.exe"
   rabbitmq_installer_path: "C:\\Users\\appveyor\\rabbitmq-server-3.7.4.exe"
-
-  global:
-    WITH_COMPILER: 'cmd /E:ON /V:ON /C .\ci\appveyor-with-compiler.cmd' 
 
   matrix:
     - TOXENV: 'py27'
@@ -53,13 +56,6 @@ init:
   - ps: echo $env:TOXENV
   - ps: ls C:\Python*
 
-install:
-  - python -u ci\appveyor-bootstrap.py
-  - '%PYTHON_HOME%\Scripts\virtualenv --version'
-  - '%PYTHON_HOME%\Scripts\easy_install --version'
-  - '%PYTHON_HOME%\Scripts\pip --version'
-  - '%PYTHON_HOME%\Scripts\tox --version'
-
 before_test:
   # List contents of C:\ to help debug caching of rabbitmq artifacts
   # - DIR C:\
@@ -97,9 +93,15 @@ before_test:
   - ECHO Getting RabbitMQ status...
   - cmd /c "C:\Program Files\RabbitMQ Server\rabbitmq_server-%rabbitmq_version%\sbin\rabbitmqctl.bat" status
 
+  # Check that we have the expected version and architecture for Python
+  - "python --version"
+  - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
+  - "python -m pip install --upgrade pip"
+  - "%CMD_IN_ENV% pip install -r requirements-test.txt"
+
   - ECHO Installing tox
-  - "%CMD_IN_ENV% pip install tox"
+  - pip install tox tox-appveyor
 
 
 test_script:
-  - '%WITH_COMPILER% %PYTHON_HOME%\Scripts\tox'
+  - '%PYTHON_HOME%\Scripts\tox'
