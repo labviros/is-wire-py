@@ -1,5 +1,6 @@
 from datetime import datetime
-from google.protobuf import json_format
+from google.protobuf import json_format as pb
+from google.protobuf.struct_pb2 import Struct
 from six import integer_types, string_types, binary_type
 
 from .utils import now, assert_type, new_uuid
@@ -315,16 +316,23 @@ class Message(object):
         Args:
             obj (object): protobuf object to be serialized.
         """
+
+        isDict = isinstance(obj, dict)
+
+        if isDict:
+            obj = pb.ParseDict(obj, Struct())
+
         if not self.has_content_type():
-            self.content_type = ContentType.PROTOBUF
+            # Default for dict object is to be serialized as json
+            # Default for protobuf object is to be binary serialized
+            self.content_type = ContentType.JSON if isDict else ContentType.PROTOBUF
 
         if self.content_type == ContentType.PROTOBUF:
             # SerializeToString returns py2: str, py3: bytes
             self.body = obj.SerializeToString()
-
         elif self.content_type == ContentType.JSON:
             # MessageToJson returns py2: str, py3: str
-            packed = json_format.MessageToJson(
+            packed = pb.MessageToJson(
                 obj, indent=0, including_default_value_fields=True)
             if not isinstance(packed, binary_type):
                 self.body = packed.encode('latin')
@@ -335,7 +343,7 @@ class Message(object):
                 "Serialization to '{}' type not implemented".format(
                     self.content_type.name))
 
-    def unpack(self, schema):
+    def unpack(self, schema=dict):
         """ Deserializes the content of the message using the given schema.
         If the message has no content_type, the protobuf format is used.
         Args:
@@ -343,19 +351,25 @@ class Message(object):
         Returns:
             schema: deserialized instance of the object of type schema.
         """
+
+        isDict = schema is dict
+        if isDict:
+            schema = Struct
+
         obj = schema()
         if not self.has_content_type():
             self.content_type = ContentType.PROTOBUF
 
         if self.content_type == ContentType.PROTOBUF:
             obj.ParseFromString(self.body)
-
         elif self.content_type == ContentType.JSON:
-            obj = json_format.Parse(self.body, obj)
-
+            obj = pb.Parse(self.body, obj)
         else:
             raise NotImplementedError(
                 "Deserialization from '{}' type not implemented".format(
                     self.content_type.name))
+
+        if isDict:
+            obj = pb.MessageToDict(obj, including_default_value_fields=True)
 
         return obj
