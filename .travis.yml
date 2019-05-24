@@ -19,7 +19,7 @@ matrix:
       os: windows 
       language: sh # 'language: python' is an error on Travis CI Windows
       before_install: 
-        - choco install rabbitmq --ignoredependencies -y
+        - wget -qO - https://raw.githubusercontent.com/smola/ci-tricks/master/get.sh | bash
         - choco install python --version 3.5.4
         - python -m pip install --upgrade pip
       env: 
