@@ -7,14 +7,14 @@ $exePath = "$($env:USERPROFILE)\rabbitmq-server-3.6.4.exe"
 Write-Host "Installing..."
 cmd /c start /wait $exePath /S
 
-$rabbitPath = 'C:\Program Files\RabbitMQ\rabbitmq_server-3.6.4'
+$rabbitPath = (which rabbitmq-server.bat)
 Write-Host "RabbitMQ path: $rabbitPath"
 
 Write-Host "Installing service..."
-Start-Process -Wait "$rabbitPath\sbin\rabbitmq-service.bat" "install"
+Start-Process -Wait "$rabbitPath" "install"
 
 Write-Host "Starting service..."
-Start-Process -Wait "$rabbitPath\sbin\rabbitmq-service.bat" "start"
+Start-Process -Wait "$rabbitPath" "start"
 
 Get-Service "RabbitMQ"
 
