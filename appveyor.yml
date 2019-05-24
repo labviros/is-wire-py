@@ -50,4 +50,4 @@ before_test:
 
 
 test_script:
-  - '%PYTHON_HOME%\Scripts\tox'
+  - tox
