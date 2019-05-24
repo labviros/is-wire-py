@@ -6,9 +6,7 @@ from is_wire.core.utils import now, new_uuid
 from is_wire.core.wire.status import Status, StatusCode
 from is_wire.core.wire.content_type import ContentType
 from is_wire.core.tracing.tracer import Tracer
-from opencensus.trace.exporters.zipkin_exporter import ZipkinExporter
-from opencensus.trace.exporters.transports.background_thread import \
-                                                     BackgroundThreadTransport
+from opencensus.common.transports.async_ import AsyncTransport
 
 __all__ = [
     "Channel",
@@ -21,6 +19,5 @@ __all__ = [
     "StatusCode",
     "ContentType",
     "Tracer",
-    "ZipkinExporter",
-    "BackgroundThreadTransport",
+    "AsyncTransport",
 ]

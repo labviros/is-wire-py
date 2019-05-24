@@ -157,17 +157,20 @@ except socket.timeout:
 
 ### Tracing messages
 
+This middleware uses [opencensus](https://github.com/census-instrumentation/opencensus-python) as instrumentation library. Latest versions of opencensus released separate packages to integrate with different frameworks and tracing collector tools. When interacting with services implemented with either the C++ or Python of is-wire, we recommend to use [Zipkin](https://zipkin.apache.org/) to collect the tracing data. To do so, use the latest version of [OpenCensus Zipkin Exporter](https://github.com/census-instrumentation/opencensus-python/tree/master/contrib/opencensus-ext-zipkin).
+
 Instantiate an Exporter to trace requests:
 
 ```python
-from is_wire.core import ZipkinExporter, BackgroundThreadTransport
+from is_wire.core import AsyncTransport
+from opencensus.ext.zipkin.trace_exporter import ZipkinExporter
 
 # Create an exporter, change values accordingly to match your zipkin server
 exporter = ZipkinExporter(
     service_name="MyService",
     host_name="localhost",
     port=9411,
-    transport=BackgroundThreadTransport,
+    transport=AsyncTransport,
 )
 ```
 
