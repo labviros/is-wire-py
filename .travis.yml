@@ -14,19 +14,6 @@ matrix:
       python: 3.5
       env: TOXENV=py35
 
-    - name: "Python 3.5 on Windows"
-      os: windows 
-      language: sh # 'language: python' is an error on Travis CI Windows
-      before_install: 
-        - wget -qO ci-tricks https://github.com/smola/ci-tricks/releases/download/v0.1.0/ci-tricks_windows_amd64.exe
-        - chmod +x ci-tricks
-        - ./ci-tricks &
-        - choco install python --version 3.5.4
-        - python -m pip install --upgrade pip
-      env: 
-        - TOXENV=py35
-        - PATH=/c/Python35:/c/Python35/Scripts:$PATH
-
 install: pip install tox-travis
 script: tox
 deploy:

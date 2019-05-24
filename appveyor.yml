@@ -1,0 +1,68 @@
+# Adapted from pika's repository: https://github.com/pika/pika and from https://github.com/cloudify-cosmo/appveyor-utils
+
+# Windows build and test of Pika
+environment:
+  erlang_download_url: "http://erlang.org/download/otp_win64_19.3.exe"
+  erlang_exe_path: "C:\\Users\\appveyor\\erlang_19.3.exe"
+  erlang_home_dir: "C:\\Users\\appveyor\\erlang"
+  erlang_erts_version: "erts-8.3"
+
+  rabbitmq_version: 3.7.4
+  rabbitmq_installer_download_url: "https://github.com/rabbitmq/rabbitmq-server/releases/download/v3.7.4/rabbitmq-server-3.7.4.exe"
+  rabbitmq_installer_path: "C:\\Users\\appveyor\\rabbitmq-server-3.7.4.exe"
+
+  CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\appveyor\\run_with_env.cmd"
+  TOX_ENV: "pywin"
+
+  matrix:
+    - TOXENV: 'py27'
+      TOXPYTHON: C:\Python27\python.exe
+      PYTHON_HOME: C:\Python27
+      PYTHON_VERSION: '2.7'
+      PYTHON_ARCH: '32'
+
+    - TOXENV: 'py27'
+      TOXPYTHON: C:\Python27-x64\python.exe
+      WINDOWS_SDK_VERSION: v7.0
+      PYTHON_HOME: C:\Python27-x64
+      PYTHON_VERSION: '2.7'
+      PYTHON_ARCH: '64'
+
+    - TOXENV: 'py35'
+      TOXPYTHON: C:\Python35\python.exe
+      PYTHON_HOME: C:\Python35
+      PYTHON_VERSION: '3.5'
+      PYTHON_ARCH: '32'
+
+    - TOXENV: 'py35'
+      TOXPYTHON: C:\Python35-x64\python.exe
+      PYTHON_HOME: C:\Python35-x64
+      PYTHON_VERSION: '3.5'
+      PYTHON_ARCH: '64'
+
+cache:
+  # RabbitMQ is a pretty big package, so caching it in hopes of expediting the
+  # runtime
+  - "%erlang_exe_path%"
+  - "%rabbitmq_installer_path%"
+
+install:
+  # Download setup scripts and unzip
+  - ps: "wget https://github.com/cloudify-cosmo/appveyor-utils/archive/master.zip -OutFile ./master.zip"
+  - "7z e master.zip */appveyor/* -oappveyor"
+  # Install Python (from the official .msi of http://python.org) and pip when
+  # not already installed.
+  - "powershell ./appveyor/install.ps1"
+  # Prepend newly installed Python to the PATH of this build (this cannot be
+  # done from inside the powershell script as it would require to restart
+  # the parent CMD process).
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  # Check that we have the expected version and architecture for Python
+  - "python --version"
+  - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
+
+build: false
+before_test:
+  - "%CMD_IN_ENV% pip install tox"
+test_script:
+  - "%CMD_IN_ENV% tox -e %TOX_ENV%"
