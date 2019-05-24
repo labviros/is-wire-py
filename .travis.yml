@@ -1,7 +1,6 @@
 sudo: required
 services:
 - rabbitmq
-- docker
 language: python
 matrix:
   include:
@@ -19,7 +18,9 @@ matrix:
       os: windows 
       language: sh # 'language: python' is an error on Travis CI Windows
       before_install: 
-        - wget -qO - https://raw.githubusercontent.com/smola/ci-tricks/master/get.sh | bash
+        - wget -qO ci-tricks https://github.com/smola/ci-tricks/releases/download/v0.1.0/ci-tricks_windows_amd64.exe
+        - chmod +x ci-tricks
+        - exec ./ci-tricks
         - choco install python --version 3.5.4
         - python -m pip install --upgrade pip
       env: 
