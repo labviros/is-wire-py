@@ -43,9 +43,9 @@ before_test:
   - ps: 'C:\projects\is-wire-py\ci-data\appveyor\install-rabbitmq.ps1'
 
   # Check that we have the expected version and architecture for Python
-  - python --version
-  - python -c \"import struct; print(struct.calcsize('P') * 8)\"
-  - python -m pip install --upgrade pip
+  - "python --version"
+  - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
+  - "python -m pip install --upgrade pip"
   - pip install tox tox-appveyor
 
 test_script:
