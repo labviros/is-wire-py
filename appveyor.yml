@@ -79,8 +79,8 @@ before_test:
   - ps: (Get-Service -Name RabbitMQ).Status
 
   - ECHO Waiting for epmd to report that RabbitMQ has started...
-  - ps: 'C:\projects\pika\testdata\wait-epmd.ps1'
-  - ps: 'C:\projects\pika\testdata\wait-rabbitmq.ps1'
+  - ps: 'C:\projects\is-wire-py\ci-data\appveyor\wait-epmd.ps1'
+  - ps: 'C:\projects\is-wire-py\ci-data\appveyor\wait-rabbitmq.ps1'
 
   - ECHO Getting RabbitMQ status...
   - cmd /c "C:\Program Files\RabbitMQ Server\rabbitmq_server-%rabbitmq_version%\sbin\rabbitmqctl.bat" status
