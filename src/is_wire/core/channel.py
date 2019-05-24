@@ -11,7 +11,8 @@ class Channel(object):
             host="{}:{}".format(url.hostname or "localhost", url.port or 5672),
             userid=url.username or "guest",
             password=url.password or "guest",
-            virtual_host=url.path or '/',
+            virtual_host='/'
+            if not url.path or url.path == '/' else url.path[1:],
             connect_timeout=5.0,
         )
         self.connection.connect()
