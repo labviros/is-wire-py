@@ -39,7 +39,8 @@ init:
   - ps: ls C:\Python*
 
 before_test:
-  - "choco install rabbitmq --ignoredependencies -y"
+  # PowerShell script adapted from https://gist.github.com/FeodorFitsner/06b377df42ba8f398909
+  - ps: 'C:\projects\is-wire-py\ci-data\appveyor\install-rabbitmq.ps1'
 
   # Check that we have the expected version and architecture for Python
   - "python --version"
