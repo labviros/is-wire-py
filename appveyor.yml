@@ -1,5 +1,6 @@
-# Adapted from pika's repository: https://github.com/pika/pika and from https://github.com/ogrisel/python-appveyor-demo/
+# Adapted from https://github.com/ogrisel/python-appveyor-demo/
 
+image: Visual Studio 2017
 # Windows build and test of Pika
 environment:
   global:
@@ -7,15 +8,6 @@ environment:
     # /E:ON and /V:ON options are not enabled in the batch script intepreter
     # See: http://stackoverflow.com/a/13751649/163740
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\appveyor\\run_with_env.cmd"
-
-  erlang_download_url: "http://erlang.org/download/otp_win64_19.3.exe"
-  erlang_exe_path: "C:\\Users\\appveyor\\erlang_19.3.exe"
-  erlang_home_dir: "C:\\Users\\appveyor\\erlang"
-  erlang_erts_version: "erts-8.3"
-
-  rabbitmq_version: 3.7.4
-  rabbitmq_installer_download_url: "https://github.com/rabbitmq/rabbitmq-server/releases/download/v3.7.4/rabbitmq-server-3.7.4.exe"
-  rabbitmq_installer_path: "C:\\Users\\appveyor\\rabbitmq-server-3.7.4.exe"
 
   matrix:
     - TOXENV: 'py27'
@@ -44,10 +36,6 @@ environment:
       PYTHON_ARCH: '64'
 
 cache:
-  # RabbitMQ is a pretty big package, so caching it in hopes of expediting the
-  # runtime
-  - "%erlang_exe_path%"
-  - "%rabbitmq_installer_path%"
   - '%LOCALAPPDATA%\pip\Cache'
 
 build: false
@@ -57,33 +45,7 @@ init:
   - ps: ls C:\Python*
 
 before_test:
-  # List contents of C:\ to help debug caching of rabbitmq artifacts
-  # - DIR C:\
-  - ps: $webclient=New-Object System.Net.WebClient
-
-  - ECHO Downloading Erlang...
-  - ps: if (-Not (Test-Path "$env:erlang_exe_path")) { $webclient.DownloadFile("$env:erlang_download_url", "$env:erlang_exe_path") } else { Write-Host "Found" $env:erlang_exe_path "in cache." }
-
-  - ECHO Installing Erlang...
-  - start /B /WAIT %erlang_exe_path% /S /D=%erlang_home_dir%
-  - set ERLANG_HOME=%erlang_home_dir%
-
-  - ECHO Downloading RabbitMQ...
-  - ps: if (-Not (Test-Path "$env:rabbitmq_installer_path")) { $webclient.DownloadFile("$env:rabbitmq_installer_download_url", "$env:rabbitmq_installer_path") } else { Write-Host "Found" $env:rabbitmq_installer_path "in cache." }
-
-  - ECHO Creating directory %AppData%\RabbitMQ...
-  - ps: New-Item -ItemType Directory -ErrorAction Continue -Path "$env:AppData/RabbitMQ"
-
-  - ECHO Installing and starting RabbitMQ with default config...
-  - start /B /WAIT %rabbitmq_installer_path% /S
-  - ps: (Get-Service -Name RabbitMQ).Status
-
-  - ECHO Waiting for epmd to report that RabbitMQ has started...
-  - ps: 'C:\projects\is-wire-py\ci-data\appveyor\wait-epmd.ps1'
-  - ps: 'C:\projects\is-wire-py\ci-data\appveyor\wait-rabbitmq.ps1'
-
-  - ECHO Getting RabbitMQ status...
-  - cmd /c "C:\Program Files\RabbitMQ Server\rabbitmq_server-%rabbitmq_version%\sbin\rabbitmqctl.bat" status
+  - "choco install rabbitmq --ignoredependencies -y"
 
   # Check that we have the expected version and architecture for Python
   - "python --version"
