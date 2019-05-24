@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='is_wire',
-    version='1.1.4',
+    version='1.2.0',
     description='',
     url='http://github.com/labviros/is-wire-py',
     author='labviros',
@@ -18,5 +18,4 @@ setup(
         'opencensus==0.5.0',
         'prometheus-client==0.3.1',
     ]
-    # change 'is-opencensus' to 'opencensus' when pull request accepted
 )

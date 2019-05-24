@@ -4,6 +4,8 @@
 Pub/Sub middleware for the *is* architecture (python implementation)
 
 ![PyPI](https://img.shields.io/pypi/v/is-wire.svg?label=is-wire&style=for-the-badge)
+![Travis](https://img.shields.io/travis/com/labviros/is-wire-py.svg?label=Linux&style=for-the-badge)
+![Appveyor](https://img.shields.io/appveyor/ci/felippe-mendonca/is-wire-py.svg?label=Windows&style=for-the-badge)
 
 ## Installation 
 
