@@ -1,6 +1,10 @@
+import os
 import pytest
 from is_wire.core.tracing.propagation import TextFormatPropagator
 from is_wire.core import Message, Channel, Subscription, Tracer
+
+URI = os.getenv('WIRE_RABBITMQ_URI', 'amqp://guest:guest@localhost:5672')
+EXCHANGE = os.getenv('WIRE_DEFAULT_EXCHANGE', 'is')
 
 
 def test_propagator():
@@ -47,7 +51,7 @@ def test_extraction():
 
 def test_propagation():
     topic = "span_test"
-    channel = Channel()
+    channel = Channel(uri=URI, exchange=EXCHANGE)
     subscription = Subscription(channel)
     subscription.subscribe(topic)
 

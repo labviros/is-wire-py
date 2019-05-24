@@ -1,8 +1,12 @@
+import os
 import pytest
 from is_wire.rpc import ServiceProvider, LogInterceptor
 from is_wire.core import Channel, Status, StatusCode, Subscription, Message
 from google.protobuf.struct_pb2 import Struct
 from google.protobuf.wrappers_pb2 import Int64Value
+
+URI = os.getenv('WIRE_RABBITMQ_URI', 'amqp://guest:guest@localhost:5672')
+EXCHANGE = os.getenv('WIRE_DEFAULT_EXCHANGE', 'is')
 
 
 def my_service(request, context):
@@ -16,7 +20,7 @@ def my_service(request, context):
 
 
 def test_rpc():
-    channel = Channel()
+    channel = Channel(uri=URI, exchange=EXCHANGE)
     service = ServiceProvider(channel)
     service.add_interceptor(LogInterceptor())
     service.delegate("MyService", my_service, Struct, Int64Value)
@@ -55,7 +59,7 @@ def test_rpc():
 
 
 def test_serve():
-    channel = Channel()
+    channel = Channel(uri=URI, exchange=EXCHANGE)
     service = ServiceProvider(channel)
     topic = "MyService"
     service.delegate(topic, my_service, Struct, Int64Value)
@@ -84,7 +88,7 @@ def test_serve():
 
 
 def test_delegate():
-    channel = Channel()
+    channel = Channel(uri=URI, exchange=EXCHANGE)
     service = ServiceProvider(channel)
     service.delegate("MyService", my_service, Struct, Int64Value)
     with pytest.raises(RuntimeError):

@@ -12,7 +12,7 @@ setup(
     zip_safe=False,
     install_requires=[
         'colorlog==3.1.4',
-        'amqp==2.3.2',
+        'amqp==2.4.2',
         'enum34==1.1.6',
         'protobuf==3.6.0',
         'is-opencensus>=0.1.5.3',

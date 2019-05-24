@@ -1,11 +1,15 @@
+import os
 import pytest
 from is_wire.core import Channel, Message, Subscription, now
 from google.protobuf.struct_pb2 import Struct
 import socket
 
+URI = os.getenv('WIRE_RABBITMQ_URI', 'amqp://guest:guest@localhost:5672')
+EXCHANGE = os.getenv('WIRE_DEFAULT_EXCHANGE', 'is')
+
 
 def test_channel():
-    channel = Channel()
+    channel = Channel(uri=URI, exchange=EXCHANGE)
     subscription = Subscription(channel)
     subscription.subscribe("MyTopic.Sub.Sub")
 
@@ -42,7 +46,7 @@ def test_channel():
 
 @pytest.mark.parametrize("size", [0, 1e4])
 def test_body(size):
-    channel = Channel()
+    channel = Channel(uri=URI, exchange=EXCHANGE)
 
     subscription = Subscription(channel)
     subscription.subscribe("MyTopic.Sub.Sub")
@@ -62,7 +66,7 @@ def test_body(size):
 
 
 def test_negative_timeout():
-    channel = Channel()
+    channel = Channel(uri=URI, exchange=EXCHANGE)
     with pytest.raises(AssertionError):
         channel.consume(timeout=-1e-10)
     with pytest.raises(socket.timeout):
@@ -71,7 +75,7 @@ def test_negative_timeout():
 
 
 def test_empty_topic():
-    channel = Channel()
+    channel = Channel(uri=URI, exchange=EXCHANGE)
     message = Message(content="body".encode('latin'))
 
     with pytest.raises(RuntimeError):
@@ -93,7 +97,7 @@ def test_empty_topic():
 
 
 def test_multi_subscription():
-    channel = Channel()
+    channel = Channel(uri=URI, exchange=EXCHANGE)
     message = Message()
     subscription1 = Subscription(channel)
     subscription2 = Subscription(channel)
