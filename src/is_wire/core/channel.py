@@ -72,5 +72,31 @@ class Channel(object):
             self.connection.drain_events(timeout)
         return WireV1.from_amqp_message(self.amqp_message)
 
+    def consume_ready(self, only_last_one=False):
+        """ Necessary to prevent messages being queued. 
+        
+        If only_last_one is False retrives a list of all messages.
+        If only_last_one is True, return only the last message and how many
+        dropped messages.
+        """
+        def clean_and_consume(timeout=None):
+            self.amqp_message = None
+            while self.amqp_message is None:
+                self.connection.drain_events(timeout=timeout)
+            return self.amqp_message
+
+        _amqp_message = clean_and_consume()
+        dropped = 0
+        msg = []
+        while True:
+            try:
+                # will raise an exceptin when no message remained
+                _amqp_message = clean_and_consume(timeout=0.0)
+                msg.append(WireV1.from_amqp_message(_amqp_message))
+                dropped += 1
+            except:
+                msg.append(WireV1.from_amqp_message(_amqp_message))
+                return (msg[-1], dropped) if only_last_one else msg
+
     def close(self):
         self.connection.close()
