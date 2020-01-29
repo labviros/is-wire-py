@@ -157,6 +157,49 @@ except socket.timeout:
     print('No reply :(')
 ```
 
+Multiples requests can be done throughout same client. To distinguish which reply is related to each request, you can use the `correlation_id`. This attribute is always set when a `Message` is published containing `reply_to` parameter, which means that it was a RPC request. Example below shows how to deal with it.
+
+```python
+from __future__ import print_function
+from is_wire.core import Channel, Message, Subscription
+from google.protobuf.struct_pb2 import Struct
+import socket
+
+channel = Channel("amqp://guest:guest@localhost:5672")
+subscription = Subscription(channel)
+
+# Prepare first request
+struct = Struct()
+struct.fields["value"].number_value = 1.0
+request_1 = Message(content=struct, reply_to=subscription)
+
+# Prepare second request
+struct = Struct()
+struct.fields["value"].number_value = 2.0
+request_2 = Message(content=struct, reply_to=subscription)
+
+# Make requests
+channel.publish(request_1, topic="MyService.Increment")
+channel.publish(request_2, topic="MyService.Increment")
+
+# Wait for replies with 1.0 seconds timeout
+n_replies = 0
+while n_replies < 2:
+    try:
+        reply = channel.consume(timeout=1.0)
+        struct = reply.unpack(Struct)
+        if reply.correlation_id == request_1.correlation_id:
+            n_replies += 1
+            print('First Request\nRPC Status:', reply.status, '\nReply:', struct)
+        elif reply.correlation_id == request_2.correlation_id:
+            n_replies += 1
+            print('Second Request\nRPC Status:', reply.status, '\nReply:', struct)
+        else:
+            print('Unexpected message')
+    except socket.timeout:
+        print('No reply :(')
+```
+
 ### Tracing messages
 
 This middleware uses [opencensus](https://github.com/census-instrumentation/opencensus-python) as instrumentation library. Latest versions of opencensus released separate packages to integrate with different frameworks and tracing collector tools. When interacting with services implemented with either the C++ or Python of is-wire, we recommend to use [Zipkin](https://zipkin.apache.org/) to collect the tracing data. To do so, use the latest version of [OpenCensus Zipkin Exporter](https://github.com/census-instrumentation/opencensus-python/tree/master/contrib/opencensus-ext-zipkin).
