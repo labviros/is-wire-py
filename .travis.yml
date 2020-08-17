@@ -1,4 +1,4 @@
-sudo: required
+dist: trusty
 services:
 - rabbitmq
 language: python
