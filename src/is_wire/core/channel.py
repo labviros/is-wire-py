@@ -103,7 +103,7 @@ class Channel(object):
                 tmstmp_rcvd = datetime.utcfromtimestamp(int(datetime.timestamp(now)*1000000000)/1000000000.0).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
                 timestamps = (tmstmp_send,tmstmp_rcvd)
                 tracer = Tracer(self.zipkin_exporterexporter,message.extract_tracing())
-                with tracer.span(name="TC_{}".format(message.subscription_id),timestamps=timestamps) as tspan:
+                with tracer.span(name="commtime_{}".format(message.subscription_id),timestamps=timestamps) as tspan:
                     pass
                 message.inject_tracing(tspan)
                          
