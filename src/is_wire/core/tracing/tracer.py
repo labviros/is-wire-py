@@ -22,8 +22,8 @@ class Tracer(object):
             span_context=span_context,
         )
 
-    def span(self, name='span'):
-        return self.tracer.span(name)
+    def span(self, name='span',timestamps=None):
+        return self.tracer.span(name,timestamps)
 
     def start_span(self, name='span'):
         return self.tracer.start_span(name)
