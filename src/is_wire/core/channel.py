@@ -56,12 +56,11 @@ class Channel(object):
         if not message.has_topic() and not topic:
             raise RuntimeError("Trying to publish message without topic")
 
-        if self.zipkin_uri:
-            if 'timestamp_send' in message.metadata:
-                del message.metadata['timestamp_send']
-            now = datetime.now()
-            dt_str = int(datetime.timestamp(now)*1000000)
-            message.metadata.update({'timestamp_send':dt_str})
+        if 'timestamp_send' in message.metadata:
+            del message.metadata['timestamp_send']
+        now = datetime.now()
+        dt_str = int(datetime.timestamp(now)*1000000)
+        message.metadata.update({'timestamp_send':dt_str})
 
         amqp_message = amqp.Message(body=message.body,
                                     channel=self._channel,
