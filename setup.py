@@ -14,7 +14,7 @@ setup(
         'colorlog==3.1.4',
         'amqp==2.4.2',
         'enum34==1.1.6',
-        'protobuf==3.6.0',
+        'protobuf==5.29.6',
         'opencensus==0.5.0',
         'prometheus-client==0.3.1',
     ]
